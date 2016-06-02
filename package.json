@@ -1,0 +1,35 @@
+{
+  "name": "kuzzle-plugin-cluster",
+  "version": "0.1.0",
+  "description": "Enterprise only - enables Kuzzle cluster mode",
+  "main": "./lib/index.js",
+  "scripts": {
+    "test": "istanbul cover _mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kuzzleio/kuzzle-plugin-cluster.git"
+  },
+  "keywords": [
+    "kuzzle",
+    "plugin",
+    "cluster"
+  ],
+  "author": "Kuzzle",
+  "license": "SEE LICENSE IN LICENSE",
+  "bugs": {
+    "url": "https://github.com/kuzzleio/kuzzle-plugin-cluster/issues"
+  },
+  "homepage": "https://github.com/kuzzleio/kuzzle-plugin-cluster#readme",
+  "pluginInfo": {
+    "defaultConfig": {
+      "loadedBy": "server",
+      "privileged": true,
+      "binding": "0.0.0.0:7911"
+    }
+  },
+  "dependencies": {
+    "kuzzle-common-objects": "git+https://github.com/kuzzleio/kuzzle-common-objects.git#1.0.0",
+    "q": "^1.4.1"
+  }
+}
