@@ -25,11 +25,13 @@
     "defaultConfig": {
       "loadedBy": "server",
       "privileged": true,
-      "binding": "0.0.0.0:7911"
+      "mode": "master",
+      "binding": "[eth0:ipv4]:7911"
     }
   },
   "dependencies": {
     "kuzzle-common-objects": "git+https://github.com/kuzzleio/kuzzle-common-objects.git#1.0.0",
+    "node-uuid": "^1.4.7",
     "q": "^1.4.1"
   }
 }
