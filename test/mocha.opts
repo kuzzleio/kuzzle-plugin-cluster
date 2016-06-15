@@ -1,0 +1,6 @@
+-r should-sinon
+-b
+--reporter spec
+--recursive
+--slow 2000
+--timeout 10000

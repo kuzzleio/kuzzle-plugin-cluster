@@ -4,7 +4,9 @@
   "description": "Enterprise only - enables Kuzzle cluster mode",
   "main": "./lib/index.js",
   "scripts": {
-    "test": "istanbul cover _mocha"
+    "test": "npm run --silent linter && npm run --silent unit-test",
+    "unit-test": "istanbul cover _mocha",
+    "linter": "eslint --max-warnings=0 ./lib ./test"
   },
   "repository": {
     "type": "git",
@@ -26,12 +28,24 @@
       "loadedBy": "server",
       "privileged": true,
       "mode": "master",
-      "binding": "[eth0:ipv4]:7911"
+      "binding": "[eth0:ipv4]:7911",
+      "retryInterval": 2000
     }
   },
   "dependencies": {
+    "crypto-md5": "^1.0.0",
     "kuzzle-common-objects": "git+https://github.com/kuzzleio/kuzzle-common-objects.git#1.0.0",
+    "lodash": "^4.13.1",
     "node-uuid": "^1.4.7",
     "q": "^1.4.1"
+  },
+  "devDependencies": {
+    "eslint": "^2.11.1",
+    "istanbul": "^0.4.3",
+    "mocha": "^2.5.3",
+    "rewire": "^2.5.1",
+    "should": "^9.0.0",
+    "should-sinon": "0.0.5",
+    "sinon": "^1.17.4"
   }
 }
