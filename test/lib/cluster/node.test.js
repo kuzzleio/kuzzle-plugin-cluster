@@ -10,18 +10,23 @@ describe('lib/cluster/node', () => {
   var
     node;
 
-  beforeEach(() => {
+  before(() => {
     node = new Node();
 
     node.broker = { listen: sandbox.spy() };
     node.kuzzle = {
       indexCache: {
         add: sandbox.spy(),
-        remove: sandbox.spy()
+        remove: sandbox.spy(),
+        reset: sandbox.spy()
       },
       dsl: {
         filters: {
-          add: sandbox.spy()
+          add: sandbox.spy(() => {
+            return {path: 'path', filter: 'filter'};
+          }),
+          addCollectionSubscription: sandbox.spy(),
+          filters: {}
         }
       },
       hotelClerk: {
@@ -30,6 +35,14 @@ describe('lib/cluster/node', () => {
         addRoomForCustomer: sandbox.spy(),
         removeRooms: sandbox.spy(),
         removeRoomForCustomer: sandbox.spy()
+      },
+      hooks: {
+        list: {
+          write: {broadcast: sandbox.spy()}
+        }
+      },
+      pluginsManager: {
+        trigger: sinon.spy()
       }
     };
   });
@@ -39,7 +52,7 @@ describe('lib/cluster/node', () => {
   });
 
 
-  describe('#addDifflisted', () => {
+  describe('#addDiffListeners', () => {
 
     it('should attach the listener to the broker', () => {
       node.addDiffListener();
@@ -57,11 +70,11 @@ describe('lib/cluster/node', () => {
 
     before(() => {
       rewireRevert = Node.__set__({
-        mergeIndexCache: sinon.spy(),
         mergeAddRoom: sinon.spy(),
         mergeDelRoom: sinon.spy(),
         mergeDelRooms: sinon.spy(),
-        mergeFilterTree: sinon.spy()
+        mergeFilterTree: sinon.spy(),
+        updateAutoRefresh: sinon.spy()
       });
       merge = Node.__get__('merge');
     });
@@ -70,82 +83,69 @@ describe('lib/cluster/node', () => {
       rewireRevert();
     });
 
-    it('should call the mergeIndexCache function when an `ic` key is given', () => {
-      merge({ic: true});
-
-      should(Node.__get__('mergeIndexCache')).be.calledOnce();
-      should(Node.__get__('mergeIndexCache')).be.calledWith(true);
+    it('should call kuzzle.indexCache.add with proper values when an `icAdd` key is given', () => {
+      merge.call(node, {icAdd: {i: 'index', c: 'collection'}});
+      
+      should(node.kuzzle.indexCache.add).be.calledOnce();
+      should(node.kuzzle.indexCache.add).be.calledWithExactly('index', 'collection', false);
+    });
+    
+    it('should call kuzzle.indexCache.remove with proper values when an `icDel` key is given', () => {
+      merge.call(node, {icDel: {i: 'index', c: 'collection'}});
+      
+      should(node.kuzzle.indexCache.remove).be.calledOnce();
+      should(node.kuzzle.indexCache.remove).be.calledWithExactly('index', 'collection', false);
+    });
+    
+    it('should call kuzzle.indexCache.reset with proper values when an `icReset` key is given', () => {
+      merge.call(node, {icReset: {i: 'index'}});
+      
+      should(node.kuzzle.indexCache.reset).be.calledOnce();
+      should(node.kuzzle.indexCache.reset).be.calledWithExactly('index', false);
     });
 
     it('should call the mergeAddRoom function when an `hcR` key is given', () => {
-      merge([{hcR: true}]);
+      merge.call(node, [{hcR: true}]);
 
       should(Node.__get__('mergeAddRoom')).be.calledOnce();
       should(Node.__get__('mergeAddRoom')).be.calledWith(true);
     });
 
     it('should call the mergeDelRoom function when an `hcDel` key is given', () => {
-      merge({hcDel: true});
+      merge.call(node, {hcDel: true});
 
       should(Node.__get__('mergeDelRoom')).be.calledOnce();
       should(Node.__get__('mergeDelRoom')).be.calledWith(true);
     });
     
     it('should call the mergeDelRooms function when an `hcDelMul` key is given', () => {
-      merge({hcDelMul: true});
+      merge.call(node, {hcDelMul: true});
       
       should(Node.__get__('mergeDelRooms')).be.calledOnce();
       should(Node.__get__('mergeDelRooms')).be.calledWith(true);
     });
 
     it('should call the mergeFilterTree function when an `ft`key is given', () => {
-      merge({ft: true});
+      merge.call(node, {ft: true});
 
       should(Node.__get__('mergeFilterTree')).be.calledOnce();
       should(Node.__get__('mergeFilterTree')).be.calledWith(true);
     });
 
-  });
-
-  describe('#mergeIndexCache', () => {
-    var
-      mergeIndexCache = Node.__get__('mergeIndexCache');
-
-    it('should do nothing if the diff is malformed', () => {
-      mergeIndexCache.call(node, { invalid: 'format' });
-
-      should(node.kuzzle.indexCache.add).have.callCount(0);
-      should(node.kuzzle.indexCache.remove).have.callCount(0);
+    it('should call kuzzle.dsl.filters.addCollectionSubscription with proper values when a `ftG` key is given', () => {
+      merge.call(node, {ftG: {i: 'index', c: 'collection', fi: 'filterId'}});
+      
+      should(node.kuzzle.dsl.filters.addCollectionSubscription).be.calledOnce();
+      should(node.kuzzle.dsl.filters.addCollectionSubscription).be.calledWithExactly('filterId', 'index', 'collection');
     });
-
-    it('should handle additions', () => {
-      mergeIndexCache.call(node, {
-        '+': [
-          { i: 'index', c: 'collection' },
-          { i: 'anotherindex' }
-        ]
-      });
-
-      should(node.kuzzle.indexCache.add).be.calledTwice();
-      should(node.kuzzle.indexCache.add.firstCall).be.calledWith('index', 'collection');
-      should(node.kuzzle.indexCache.add.secondCall).be.calledWith('anotherindex', undefined);
-      should(node.kuzzle.indexCache.remove).have.callCount(0);
+    
+    it('should call the updateAutoRefresh function when an `ar` key is given', () => {
+      merge.call(node, {ar: {i: 'index', v: 'value'}});
+      
+      should(Node.__get__('updateAutoRefresh')).be.calledOnce();
+      should(Node.__get__('updateAutoRefresh')).be.calledWithExactly('index', 'value');
     });
-
-    it('should handle deletions', () => {
-      mergeIndexCache.call(node, {
-        '-': [
-          { i: 'index', c: 'collection' },
-          { i: 'anotherindex' }
-        ]
-      });
-
-      should(node.kuzzle.indexCache.add).have.callCount(0);
-      should(node.kuzzle.indexCache.remove).be.calledTwice();
-      should(node.kuzzle.indexCache.remove.firstCall).be.calledWith('index', 'collection');
-      should(node.kuzzle.indexCache.remove.secondCall).be.calledWith('anotherindex', undefined);
-    });
-
+    
   });
 
   describe('#mergeAddRoom', () => {
@@ -237,6 +237,26 @@ describe('lib/cluster/node', () => {
         true
       );
     });
+  });
+
+  describe('#updateAutoRefresh', () => {
+    var updateAutoRefresh = Node.__get__('updateAutoRefresh');
+
+    it('should call kuzzle write:broadcast hook with a valid requestObject', () => {
+      var 
+        requestObject;
+      
+      updateAutoRefresh.call(node, 'index', 'value');
+      
+      should(node.kuzzle.hooks.list.write.broadcast).be.calledOnce();
+      requestObject = node.kuzzle.hooks.list.write.broadcast.firstCall.args[0];
+      
+      should(requestObject.index).be.exactly('index');
+      should(requestObject.controller).be.exactly('admin');
+      should(requestObject.action).be.exactly('setAutoRefresh');
+      should(requestObject.data.body.autoRefresh).be.exactly('value');
+    });
+
   });
 
 });

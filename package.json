@@ -4,9 +4,9 @@
   "description": "Enterprise only - enables Kuzzle cluster mode",
   "main": "./lib/index.js",
   "scripts": {
-    "test": "npm run --silent linter && npm run --silent unit-test",
+    "test": "npm run --silent lint && npm run --silent unit-test",
     "unit-test": "istanbul cover _mocha",
-    "linter": "eslint --max-warnings=0 ./lib ./test"
+    "lint": "eslint --max-warnings=0 ./lib ./test"
   },
   "repository": {
     "type": "git",

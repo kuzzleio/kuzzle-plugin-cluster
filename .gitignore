@@ -1,3 +1,6 @@
 /.idea
 /node_modules
 /coverage
+/docker-compose/my.env
+/docker-compose/docker-compose.yml
+/docker-compose/tmp

@@ -11,11 +11,13 @@ describe('lib/cluster/masterNode', () => {
   var
     context = {
       uuid: 'uuid',
-      kuzzle: {
-        services: { list: { broker: {} } },
-        hotelClerk: { rooms: 'rooms', customers: 'customers' },
-        dsl: { filters: { filtersTree: 'filterTree', filters: 'filters' } },
-        indexCache: 'indexCache'
+      accessors: {
+        kuzzle: {
+          services: { list: { broker: {} } },
+          hotelClerk: { rooms: 'rooms', customers: 'customers' },
+          dsl: { filters: { filtersTree: 'filterTree', filters: 'filters' } },
+          indexCache: { indexes: 'indexes' }
+        }
       }},
     options = {some: 'options'};
   
@@ -30,7 +32,7 @@ describe('lib/cluster/masterNode', () => {
         node = new MasterNode(context, options);
 
       should(node.options).be.exactly(options);
-      should(node.kuzzle).be.exactly(context.kuzzle);
+      should(node.kuzzle).be.exactly(context.accessors.kuzzle);
       should(node.uuid).be.exactly(context.uuid);
       should(node).have.property('slaves');
       should(node.slaves).be.an.Object();
@@ -63,7 +65,7 @@ describe('lib/cluster/masterNode', () => {
     it('should set the broker and attach the listeners', () => {
       node.init();
       
-      should(node.broker).be.exactly(context.kuzzle.services.list.broker);
+      should(node.broker).be.exactly(context.accessors.kuzzle.services.list.broker);
       should(spy).be.calledOnce();
     });
 
@@ -77,9 +79,12 @@ describe('lib/cluster/masterNode', () => {
         addDiffListener: sinon.spy(),
         broker: {
           listen: sandbox.spy((channel, callback) => { cb = callback; }),
-          send: sandbox.spy()
+          send: sandbox.spy(),
+          onConnectHandlers: [],
+          onCloseHandlers: [],
+          onErrorHandlers: []
         },
-        kuzzle: context.kuzzle,
+        kuzzle: context.accessors.kuzzle,
         slaves: {}
       },
       revert;
@@ -106,25 +111,27 @@ describe('lib/cluster/masterNode', () => {
       // cb test
       cb.call(node, {uuid:'foobar', options: {binding: 'binding'}});
       
-      should(node.slaves).have.property('foobar');
-      should(Slave).be.calledOnce();
-      should(Slave).be.calledWith('context', {binding: 'binding'});
       should(node.broker.send).be.calledOnce();
       should(node.broker.send).be.calledWith('cluster:foobar', {
         action: 'snapshot',
         data: {
           hc: {
-            rooms: context.kuzzle.hotelClerk.rooms,
-            customers: context.kuzzle.hotelClerk.customers
+            rooms: context.accessors.kuzzle.hotelClerk.rooms,
+            customers: context.accessors.kuzzle.hotelClerk.customers
           },
           ft: {
-            t: context.kuzzle.dsl.filters.filtersTree,
-            f: context.kuzzle.dsl.filters.filters
+            t: context.accessors.kuzzle.dsl.filters.filtersTree,
+            f: context.accessors.kuzzle.dsl.filters.filters
           },
-          ic: context.kuzzle.indexCache
+          ic: context.accessors.kuzzle.indexCache.indexes
         }
       });
       
+      should(node.broker.onErrorHandlers).have.length(1);
+      
+      node.isReady = true;
+      node.broker.onErrorHandlers[0]();
+      should(node.isReady).be.false();
     });
 
   });

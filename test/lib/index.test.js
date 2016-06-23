@@ -9,9 +9,10 @@ var
 describe('lib/index', () => {
   var 
     pluginContext = {
-      kuzzle: {
-        config: {}
-      }
+      accessors: {kuzzle: {
+        config: {},
+        pluginsManager: {trigger: sandbox.spy()}
+      }}
     },
     kuzzleCluster,
     MasterNode = sandbox.spy(),
@@ -36,13 +37,7 @@ describe('lib/index', () => {
     it('should extend its config with Kuzzle cluster one', () => {
       var 
         context = {
-          kuzzle: {
-            config: {
-              cluster: {
-                foo: 'bar'
-              }
-            }
-          }
+          accessors: {kuzzle: {config: {cluster:{ foo: 'bar'}}}}
         };
 
       kuzzleCluster.init({some: 'value'}, context, true);
@@ -87,25 +82,109 @@ describe('lib/index', () => {
       return kuzzleCluster.kuzzleStarted()
         .then(() => {
           should(kuzzleCluster.node.init).be.calledOnce();
-          should(kuzzleCluster.isReady).be.true();
         });
     });
 
   });
 
+  describe('#indexCacheAdded', () => {
+    
+    it('should do nothing if not ready', () => {
+      kuzzleCluster.node = {
+        isReady: false, 
+        broker: {broadcast: sinon.spy()}
+      };
+      
+      kuzzleCluster.indexCacheAdded(true);
+      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
+    });
+    
+    it('should broadcast an icAdd diff', () => {
+      kuzzleCluster.node = {
+        isReady: true, 
+        broker: {broadcast: sinon.spy()}
+      };
+      
+      kuzzleCluster.indexCacheAdded({index: 'index', collection: 'collection'});
+      should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
+      should(kuzzleCluster.node.broker.broadcast).be.calledWithExactly('cluster:update', {
+        icAdd: {i: 'index', c: 'collection'}
+      });
+    });
+    
+  });
+  
+  describe('#indexCacheRemoved', () => {
+    
+    it('should do nothing if not ready', () => {
+      kuzzleCluster.node = {
+        isReady: false,
+        broker: {broadcast: sinon.spy()}
+      };
+      
+      kuzzleCluster.indexCacheRemoved(true);
+      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
+    });
+    
+    it('should broadcast an icDel diff', () => {
+      kuzzleCluster.node = {
+        isReady: true,
+        broker: {broadcast: sinon.spy()}
+      };
+
+      kuzzleCluster.indexCacheRemoved({index: 'index', collection: 'collection'});
+      should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
+      should(kuzzleCluster.node.broker.broadcast).be.calledWithExactly('cluster:update', {
+        icDel: {i: 'index', c: 'collection'}
+      });
+    });
+    
+  });
+
+  describe('#indexCacheResett', () => {
+
+    it('should do nothing if not ready', () => {
+      kuzzleCluster.node = {
+        isReady: false,
+        broker: {broadcast: sinon.spy()}
+      };
+
+      kuzzleCluster.indexCacheResett(true);
+      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
+    });
+
+    it('should broadcast an icReset diff', () => {
+      kuzzleCluster.node = {
+        isReady: true,
+        broker: {broadcast: sinon.spy()}
+      };
+
+      kuzzleCluster.indexCacheResett({index: 'index'});
+      should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
+      should(kuzzleCluster.node.broker.broadcast).be.calledWithExactly('cluster:update', {
+        icReset: {i: 'index'}
+      });
+    });
+    
+  });
+  
   describe('#roomsRemoved', () => {
 
     it('should do nothing if not ready', () => {
-      kuzzleCluster.node = {broker: {broadcast: sinon.spy()}};
-      kuzzleCluster.isReady = false;
+      kuzzleCluster.node = {
+        isReady: false,
+        broker: {broadcast: sinon.spy()}
+      };
       
       kuzzleCluster.roomsRemoved({});
       should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
     });
 
     it('should broadcast a multi del diff', () => {
-      kuzzleCluster.node = {broker: {broadcast: sinon.spy()}};
-      kuzzleCluster.isReady = true;
+      kuzzleCluster.node = {
+        isReady: true,
+        broker: {broadcast: sinon.spy()}
+      };
       
       kuzzleCluster.roomsRemoved({
         index: 'index', 
@@ -128,150 +207,14 @@ describe('lib/index', () => {
     });
   });
   
-  describe('#indexCreated', () => {
-    
-    it('should do nothing if the node is not ready', () => {
-      kuzzleCluster.node = {broker: {broadcast: sinon.spy()}};
-      kuzzleCluster.isReady = false;
-      
-      kuzzleCluster.indexCreated({});
-      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
-    });
-    
-    it('should do nothing if no index is defined', () => {
-      kuzzleCluster.node = {broker: {broadcast: sinon.spy()}};
-      kuzzleCluster.isReady = true;
-      
-      kuzzleCluster.indexCreated({});
-      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
-    });
-    
-    it('should broadcast a ic diff', () => {
-      kuzzleCluster.node = {broker: {broadcast: sinon.spy()}};
-      kuzzleCluster.isReady = true;
-      
-      kuzzleCluster.indexCreated({
-        index: 'index',
-        collection: 'collection',
-        result: { acknowledged: true }
-      });
-      should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', {
-        ic: { '+': [{i: 'index'}]}
-      });
-    });
-  });
-  
-  describe('#indexDeleted', () => {
-   
-    it('should do nothing is not ready', () => {
-      kuzzleCluster.node = {broker: {broadcast: sinon.spy()}};
-      kuzzleCluster.isReady = false;
-      
-      kuzzleCluster.indexDeleted({});
-      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
-    });
-    
-    it('should do nothgin if no index is given', () => {
-      kuzzleCluster.node = {broker: {broadcast: sinon.spy()}};
-      kuzzleCluster.isReady = true;
-
-      kuzzleCluster.indexDeleted({});
-      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
-    });
-    
-    it('should broadcast an ic diff', () => {
-      kuzzleCluster.node = {broker: {broadcast: sinon.spy()}};
-      kuzzleCluster.isReady = true;
-      
-      kuzzleCluster.indexDeleted({
-        index: 'index',
-        result: {acknowledged: true}
-      });
-      should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', {
-        ic: {'-': [{i: 'index'}]}
-      });
-    });
-    
-  });
-  
-  describe('#indiciesDeleted', () => {
-    
-    it('should do nothing if not ready', () => {
-      kuzzleCluster.node = {broker: {broadcast: sinon.spy()}};
-      kuzzleCluster.isReady = false;
-      
-      kuzzleCluster.indiciesDeleted({});
-      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
-    });
-
-    it('should do nothing if no index is given', () => {
-      kuzzleCluster.node = {broker: {broadcast: sinon.spy()}};
-      kuzzleCluster.isReady = true;
-
-      kuzzleCluster.indiciesDeleted({});
-      kuzzleCluster.indiciesDeleted({
-        result: {}
-      });
-      kuzzleCluster.indiciesDeleted({
-        result: {deleted: []}
-      });
-      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
-    });
-    
-    it('should broadcast an ic diff', () => {
-      kuzzleCluster.node = {broker: {broadcast: sinon.spy()}};
-      kuzzleCluster.isReady = true;
-      
-      kuzzleCluster.indiciesDeleted({
-        result: {deleted: ['index1', 'index2', 'index3']}
-      });
-      should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', {
-        ic: {'-': [
-          {i: 'index1'},
-          {i: 'index2'},
-          {i: 'index3'}
-        ]}
-      });
-    });
-    
-  });
-  
-  
-  describe('#mappingUpdated', () => {
-    
-    it('should do nothing if not ready', () => {
-      kuzzleCluster.node = {broker: {broadcast: sandbox.spy()}};
-      kuzzleCluster.isReady = false;
-      
-      kuzzleCluster.mappingUpdated({});
-      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
-    });
-    
-    it('should broadcast an ic diff', () => {
-      kuzzleCluster.node = { broker: { broadcast: sandbox.spy() }};
-      kuzzleCluster.isReady = true;
-      
-      kuzzleCluster.mappingUpdated({
-        index: 'index',
-        collection: 'collection'
-      });
-      should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', {
-        ic: { '+': [{i: 'index', c: 'collection'}]}
-      });
-    });
-    
-  });
-  
   describe('#subscriptionAdded', () => {
     
-    it('should do nothgin if not ready', () => {
-      kuzzleCluster.node = {broker: {broadcast: sinon.spy()}};
-      kuzzleCluster.isReady = false;
-      
+    it('should do nothing if not ready', () => {
+      kuzzleCluster.node = {
+        isReady: false,
+        broker: {broadcast: sinon.spy()}
+      };
+
       kuzzleCluster.subscriptionAdded({});
       should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
     });
@@ -281,9 +224,11 @@ describe('lib/index', () => {
         foo: 'bar'
       };
       
-      kuzzleCluster.node = {broker: {broadcast: sandbox.spy()}};
-      kuzzleCluster.isReady = true;
-      
+      kuzzleCluster.node = {
+        isReady: true,
+        broker: {broadcast: sandbox.spy()}
+      };
+
       kuzzleCluster.subscriptionAdded(diff);
       should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
       should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', diff);
@@ -294,9 +239,11 @@ describe('lib/index', () => {
   describe('#subscriptionJoined', () => {
     
     it('should do nothing if not ready', () => {
-      kuzzleCluster.node = {broker: {broadcast: sinon.spy()}};
-      kuzzleCluster.isReady = false;
-      
+      kuzzleCluster.node = {
+        isReady: false,
+        broker: {broadcast: sinon.spy()}
+      };
+
       kuzzleCluster.subscriptionJoined({});
       should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
     });
@@ -306,8 +253,10 @@ describe('lib/index', () => {
         foo: 'bar'
       };
 
-      kuzzleCluster.node = {broker: {broadcast: sandbox.spy()}};
-      kuzzleCluster.isReady = true;
+      kuzzleCluster.node = {
+        isReady: true,
+        broker: {broadcast: sandbox.spy()}
+      };
 
       kuzzleCluster.subscriptionJoined(diff);
       should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
@@ -319,17 +268,21 @@ describe('lib/index', () => {
   describe('#subscriptionOff', () => {
     
     it('should do nothing if not ready', () => {
-      kuzzleCluster.node = {broker: {broadcast: sinon.spy()}};
-      kuzzleCluster.isReady = false;
-      
+      kuzzleCluster.node = {
+        isReady: false,
+        broker: {broadcast: sinon.spy()}
+      };
+
       kuzzleCluster.subscriptionOff({});
       should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
     });
     
     it('should broadcast an hcDel diff', () => {
-      kuzzleCluster.node = {broker: {broadcast: sandbox.spy()}};
-      kuzzleCluster.isReady = true;
-      
+      kuzzleCluster.node = {
+        isReady: true,
+        broker: {broadcast: sandbox.spy()}
+      };
+
       kuzzleCluster.subscriptionOff({
         connection: 'connection',
         roomId: 'roomId'
@@ -342,4 +295,44 @@ describe('lib/index', () => {
     
   });
 
+  describe('#autoRefreshUpdated', () => {
+    
+    it('should do nothing if not ready', () => {
+      kuzzleCluster.node = {
+        isReady: false,
+        broker: {broadcast: sinon.spy()}
+      };
+
+      kuzzleCluster.autoRefreshUpdated(true);
+      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
+    });
+    
+    it('should do nothing if the requestObject is invalid', () => {
+      kuzzleCluster.node = {
+        isReady: true,
+        broker: {broadcast: sinon.spy()}
+      };
+
+      kuzzleCluster.autoRefreshUpdated({data: {body: {}}});
+      kuzzleCluster.autoRefreshUpdated({data: {body: {autoRefresh: 'invalid'}}});
+      kuzzleCluster.autoRefreshUpdated({data: {body: {autoRefresh: 42}}});
+      
+      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
+    });
+    
+    it('should broadcast an ar diff', () => {
+      kuzzleCluster.node = {
+        isReady: true,
+        broker: {broadcast: sinon.spy()}
+      };
+
+      kuzzleCluster.autoRefreshUpdated({index: 'index', data: {body: {autoRefresh: true}}});
+      should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
+      should(kuzzleCluster.node.broker.broadcast).be.calledWithExactly('cluster:update', {
+        ar: {i: 'index', v: true}
+      });
+    });
+    
+  });
+  
 });

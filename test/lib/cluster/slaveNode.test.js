@@ -11,12 +11,15 @@ describe('lib/cluster/slaveNode', () => {
   var
     context = {
       uuid: 'uuid',
-      kuzzle: {
-        services: { list: { broker: {} } },
-        hotelClerk: { rooms: 'rooms', customers: 'customers' },
-        dsl: { filters: { filtersTree: 'filterTree', filters: 'filters' } },
-        indexCache: 'indexCache'
-      }},
+      accessors: {
+        kuzzle: {
+          services: { list: { broker: {} } },
+          hotelClerk: { rooms: 'rooms', customers: 'customers' },
+          dsl: { filters: { filtersTree: 'filterTree', filters: 'filters' } },
+          indexCache: { indexes: 'indexes' }
+        }
+      }
+    },
     options = {binding: 'binding'};
   
   afterEach(() => {
@@ -41,7 +44,7 @@ describe('lib/cluster/slaveNode', () => {
     it('should create a valid slave node object', () => {
       var node = new SlaveNode(context, options);
       
-      should(node.kuzzle).be.exactly(context.kuzzle);
+      should(node.kuzzle).be.exactly(context.accessors.kuzzle);
       should(SlaveNode.__get__('_context')).be.exactly(context);
       should(node.options).be.exactly(options);
       should(bindingSpy).be.calledOnce();
@@ -69,9 +72,7 @@ describe('lib/cluster/slaveNode', () => {
         _context: {
           constructors: {
             services: {
-              broker: {
-                WsBrokerClient: wsClientSpy
-              }
+              WsBrokerClient: wsClientSpy
             }
           }
         },
@@ -110,16 +111,30 @@ describe('lib/cluster/slaveNode', () => {
     var
       attachEvents = SlaveNode.__get__('attachEvents'),
       cb,
+      joinSpy,
       node = {
         addDiffListener: sinon.spy(),
         broker: {
           listen: sandbox.spy((channel, callback) => { cb = callback; }),
-          send: sandbox.spy()
+          send: sandbox.spy(),
+          onCloseHandlers: [],
+          onErrorHandlers: [],
+          onConnectHandlers: []
         },
-        kuzzle: context.kuzzle,
+        kuzzle: context.accessors.kuzzle,
         options: 'options',
         uuid: 'uuid'
-      };
+      },
+      reset;
+    
+    before(() => {
+      joinSpy = sandbox.spy(SlaveNode.__get__('join'));
+      reset = SlaveNode.__set__('join', joinSpy);
+    });
+    
+    after(() => {
+      reset();
+    });
 
     it('should do its job', () => {
       attachEvents.call(node);
@@ -132,6 +147,25 @@ describe('lib/cluster/slaveNode', () => {
         options: 'options'
       });
       should(node.addDiffListener).be.calledOnce();
+      should(joinSpy).be.calledOnce();
+      should(node.broker.onConnectHandlers).have.length(1);
+      should(node.broker.onCloseHandlers).have.length(1);
+      should(node.broker.onErrorHandlers).have.length(1);
+      
+      // onJoin
+      node.isReady = false;
+      node.broker.onConnectHandlers[0]();
+      should(joinSpy).have.callCount(2);
+      
+      // onClose
+      node.isReady = true;
+      node.broker.onCloseHandlers[0]();
+      should(node.isReady).be.false();
+      
+      // onError
+      node.isReady = true;
+      node.broker.onErrorHandlers[0]();
+      should(node.isReady).be.false();
       
       // cb
       cb.call(node, {
@@ -147,10 +181,10 @@ describe('lib/cluster/slaveNode', () => {
       should(node.kuzzle.hotelClerk.customers).be.exactly('ucustomers');
       should(node.kuzzle.dsl.filters.filtersTree).be.exactly('ufiltersTree');
       should(node.kuzzle.dsl.filters.filters).be.exactly('ufilters');
-      should(node.kuzzle.indexCache).be.exactly('uindexCache');
-
+      should(node.kuzzle.indexCache.indexes).be.exactly('uindexCache');
+      
+      
     });
-
 
   });
 
@@ -162,7 +196,9 @@ describe('lib/cluster/slaveNode', () => {
     before(() => {
       revert = SlaveNode.__set__({
         _context: {
-          kuzzle: {config: {internalBroker: {port: 999}}}
+          accessors: {
+            kuzzle: {config: {internalBroker: {port: 999}}}
+          }
         }
       });
     });
@@ -180,7 +216,6 @@ describe('lib/cluster/slaveNode', () => {
       should(() => resolveBinding('[invalidiface:ipv4]')).throw('Invalid network interface provided [invalidiface]');
       should(() => resolveBinding('[lo:invalid]')).throw('Invalid ip family provided [invalid] for network interface lo');
     });
-    
 
   });
   
