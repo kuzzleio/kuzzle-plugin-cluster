@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-COMPOSE_FILE=docker-compose.yml
+COMPOSE_FILE=more.yml
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$DIR/docker-compose"
@@ -53,13 +53,11 @@ fi
         export KUZ_VOLUMES="- \"$(readlink -f ${KUZ_PATH}):/var/app\""
     fi
 
-    envsubst < docker-compose.yml.tpl > docker-compose.yml
+    envsubst < more.yml.tpl > more.yml
 )
 docker-compose -f "$COMPOSE_FILE" stop
 docker-compose -f "$COMPOSE_FILE" rm -fva 2> /dev/null
 docker-compose -f "$COMPOSE_FILE" up -d
-docker-compose -f "$COMPOSE_FILE" logs -f kuzzle_master kuzzle_slave1 kuzzle_slave2
-
-
+docker-compose -f "$COMPOSE_FILE" logs -f
 
 
