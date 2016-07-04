@@ -20,26 +20,13 @@ describe('lib/cluster/slaveNode', () => {
         }
       }
     },
-    options = {binding: 'binding'};
+    options = {binding: 'binding', host: '_host', port: '_port'};
   
   afterEach(() => {
     sandbox.restore();
   });
 
   describe('#constructor', () => {
-    var 
-      bindingSpy = sinon.spy(config => '_' + config),
-      revert;
-    
-    before(() => {
-      revert = SlaveNode.__set__({
-        resolveBinding: bindingSpy
-      });
-    });
-    
-    after(() => {
-      revert();
-    });
     
     it('should create a valid slave node object', () => {
       var node = new SlaveNode(context, options);
@@ -47,9 +34,7 @@ describe('lib/cluster/slaveNode', () => {
       should(node.kuzzle).be.exactly(context.accessors.kuzzle);
       should(SlaveNode.__get__('_context')).be.exactly(context);
       should(node.options).be.exactly(options);
-      should(bindingSpy).be.calledOnce();
-      should(node.options.binding).be.exactly('_binding');
-      should(node.uuid).be.exactly('yqIz9V3lrvUUKmRO0XVGQg==');
+      should(node.uuid).be.exactly('6uohu5GXyKj+qujAtrF1FA==');
     });
     
     it('should inherit from Node', () => {
@@ -188,35 +173,4 @@ describe('lib/cluster/slaveNode', () => {
 
   });
 
-  describe('#resolveBindings', () => {
-    var
-      resolveBinding = SlaveNode.__get__('resolveBinding'),
-      revert;
-    
-    before(() => {
-      revert = SlaveNode.__set__({
-        _context: {
-          accessors: {
-            kuzzle: {config: {internalBroker: {port: 999}}}
-          }
-        }
-      });
-    });
-    
-    after(() => {
-      revert();
-    });
-
-    it('should do its job', () => {
-      should(resolveBinding('host')).be.exactly('host:999');
-      should(resolveBinding('host:666')).be.exactly('host:666');
-      should(resolveBinding('[lo:ipv4]')).match(/^(\d+\.){3}\d+:999$/);
-      should(resolveBinding('[lo:ipv4]:666')).match(/^(\d+\.){3}\d+:666$/);
-
-      should(() => resolveBinding('[invalidiface:ipv4]')).throw('Invalid network interface provided [invalidiface]');
-      should(() => resolveBinding('[lo:invalid]')).throw('Invalid ip family provided [invalid] for network interface lo');
-    });
-
-  });
-  
 });

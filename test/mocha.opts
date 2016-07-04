@@ -1,4 +1,5 @@
 -r should-sinon
+-r sinon-as-promised
 -b
 --reporter spec
 --recursive
