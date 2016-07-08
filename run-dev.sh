@@ -41,7 +41,7 @@ fi
 
     # lb
     export LB_IMAGE=${LB_IMAGE:-kuzzleio/proxy-dev}
-    export LB_VOLUMES="[]"
+    export LB_VOLUME="[]"
     if [ "$LB_PATH" != "" ]; then
         export LB_VOLUME="- \"$(readlink -f ${LB_PATH}):/var/app\""
     fi
