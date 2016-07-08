@@ -40,7 +40,7 @@ fi
     . ./my.env
 
     # lb
-    export LB_IMAGE=${LB_IMAGE:-kuzzleio/lb-dev}
+    export LB_IMAGE=${LB_IMAGE:-kuzzleio/proxy-dev}
     export LB_VOLUMES="[]"
     if [ "$LB_PATH" != "" ]; then
         export LB_VOLUME="- \"$(readlink -f ${LB_PATH}):/var/app\""
