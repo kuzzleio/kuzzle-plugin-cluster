@@ -46,6 +46,7 @@
     "rewire": "^2.5.1",
     "should": "^9.0.0",
     "should-sinon": "0.0.5",
-    "sinon": "^1.17.4"
+    "sinon": "^1.17.4",
+    "sinon-as-promised": "^4.0.0"
   }
 }

@@ -8,13 +8,13 @@ This plugin adds a cluster mode to Kuzzle.
 
 At the time this document is written, this plugin is working using the following dependencies:
 
-* Kuzzle: branch [kuz-536-internal-state-update](https://github.com/kuzzleio/kuzzle/tree/kuz-536-internal-state-updates-hooks)
-* Proxy: [commit 39976f6](https://github.com/kuzzleio/kuzzle-proxy/commit/39976f6f47f87456450ba80eadb93544461eb7df)
+* Kuzzle: branch [kuz-577-lb-master-election](https://github.com/kuzzleio/kuzzle/tree/kuz-577-lb-master-election)
+* LB: branch [kuz-577-lb-master-election](https://github.com/kuzzleio/kuzzle-proxy/tree/kuz-577-lb-master-election)
 
 ```bash
 cd <dir>
-git pull -b kuz-536-internal-state-update git@github.com:kuzzleio/kuzzle.git
-git pull -b 39976f6f47f87456450ba80eadb93544461eb7df git@github.com:kuzzleio/kuzzle-proxy.git
+git pull -b kuz-557-lb-master-election git@github.com:kuzzleio/kuzzle.git
+git pull -b kuz-557-lb-master-election git@github.com:kuzzleio/kuzzle-proxy.git
 git pull git@github.com:kuzzleio/kuzzle-plugin-cluster.git
 
 cd kuzzle-plugin-cluster

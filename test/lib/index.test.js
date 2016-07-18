@@ -1,5 +1,4 @@
 var 
-  q = require('q'),
   rewire = require('rewire'),
   should = require('should'),
   sinon = require('sinon'),
@@ -8,15 +7,14 @@ var
 
 describe('lib/index', () => {
   var 
-    pluginContext = {
-      accessors: {kuzzle: {
-        config: {},
-        pluginsManager: {trigger: sandbox.spy()}
-      }}
-    },
+    pluginContext,
     kuzzleCluster,
-    MasterNode = sandbox.spy(),
-    SlaveNode = sandbox.spy();
+    MasterNode = sandbox.spy(function MasterNode () { 
+      this.init = sandbox.stub().resolves({});    // eslint-disable-line no-invalid-this
+    }),
+    SlaveNode = sandbox.spy(function SlaveNode () {
+      this.init = sandbox.stub().resolves({});    // eslint-disable-line no-invalid-this
+    });
   
   KuzzleCluster.__set__({
     MasterNode,
@@ -24,6 +22,25 @@ describe('lib/index', () => {
   });
   
   beforeEach(() => {
+    pluginContext = {
+      accessors: {kuzzle: {
+        config: {
+          internalBroker: {
+            port: 999
+          },
+          cluster: {
+            binding: '_host:666'
+          }
+        },
+        pluginsManager: {trigger: sandbox.spy()},
+        services: {list: {
+          proxyBroker: {
+            listen: sandbox.spy(),
+            send: sandbox.spy()
+          }
+        }}
+      }}
+    };
     kuzzleCluster = new KuzzleCluster();
   });
   
@@ -54,20 +71,6 @@ describe('lib/index', () => {
       should(kuzzleCluster.node).be.undefined();
     });
     
-    it('should create a master node if requested', () => {
-      kuzzleCluster.init({mode: 'master'}, pluginContext);
-      
-      should(MasterNode).be.calledOnce();
-      should(MasterNode).be.calledWith(pluginContext, kuzzleCluster.config);
-    });
-    
-    it('should create a slave node if requested', () => {
-      kuzzleCluster.init({mode: 'slave'}, pluginContext);
-      
-      should(SlaveNode).be.calledOnce();
-      should(SlaveNode).be.calledWith(pluginContext, kuzzleCluster.config);
-    });
-    
     it('should return itself', () => {
       should(kuzzleCluster.init({}, pluginContext)).be.exactly(kuzzleCluster);
     });
@@ -76,15 +79,22 @@ describe('lib/index', () => {
   
   describe('#kuzzleStarted', () => {
     
-    it('should call node::init', () => {
-      kuzzleCluster.node = { init: sandbox.spy(() => q()) };
+    it('should use Kuzzle proxy broker to get the master/slave information', () => {
+      kuzzleCluster.init({}, pluginContext);
+      kuzzleCluster.kuzzleStarted();
       
-      return kuzzleCluster.kuzzleStarted()
-        .then(() => {
-          should(kuzzleCluster.node.init).be.calledOnce();
-        });
+      should(kuzzleCluster.lbBroker).be.exactly(pluginContext.accessors.kuzzle.services.list.proxyBroker);
+      should(kuzzleCluster.lbBroker.listen).be.calledTwice();
+      should(kuzzleCluster.lbBroker.listen.firstCall).be.calledWith('cluster:' + kuzzleCluster.uuid);
+      should(kuzzleCluster.lbBroker.listen.secondCall).be.calledWith('cluster:master');
+      should(kuzzleCluster.lbBroker.send).be.calledOnce();
+      should(kuzzleCluster.lbBroker.send).be.calledWith('cluster:join', {
+        uuid: kuzzleCluster.uuid,
+        host: '_host',
+        port: 666
+      });
     });
-
+    
   });
 
   describe('#indexCacheAdded', () => {
@@ -334,5 +344,122 @@ describe('lib/index', () => {
     });
     
   });
+
+  describe('#resolveBindings', () => {
+    var
+      resolveBinding = KuzzleCluster.__get__('resolveBinding'),
+      revert;
+
+    before(() => {
+      revert = KuzzleCluster.__set__({
+        _context: {
+          accessors: {
+            kuzzle: {config: {internalBroker: {port: 999}}}
+          }
+        }
+      });
+    });
+
+    after(() => {
+      revert();
+    });
+
+    it('should do its job', () => {
+      var response;
+      
+      should(resolveBinding('host')).be.eql({host: 'host', port: 999});
+      should(resolveBinding('host:666')).be.eql({host: 'host', port: 666});
+      response = resolveBinding('[lo:ipv4]');
+      should(response.host).match(/^(\d+\.){3}\d+/);
+      should(response.port).be.exactly(999);
+      
+      response = resolveBinding('[lo:ipv4]:666');
+      should(response.host).match(/^(\d+\.){3}\d+/);
+      should(response.port).be.exactly(666);
+
+      should(() => resolveBinding('[invalidiface:ipv4]')).throw('Invalid network interface provided [invalidiface]');
+      should(() => resolveBinding('[lo:invalid]')).throw('Invalid ip family provided [invalid] for network interface lo');
+    });
+
+  });
   
+  describe('#resetNode', () => {
+    var 
+      resetNode = KuzzleCluster.__get__('resetNode');
+    
+    beforeEach(() => {
+      kuzzleCluster.config = {
+        retryInterval: 2222
+      };
+      kuzzleCluster.kuzzle = pluginContext.accessors.kuzzle;
+      kuzzleCluster.uuid = 'uuid';
+      kuzzleCluster.lbBroker = {send: sandbox.spy()};
+    });
+    
+    it('should destroy the node if it exists', () => {
+      var 
+        spy = sandbox.spy();
+      
+      kuzzleCluster.node = {destroy: spy};
+      
+      return resetNode.call(kuzzleCluster, {
+        uuid: kuzzleCluster.uuid
+      })
+        .then(() => {
+          should(spy).be.calledOnce();
+        });
+    });
+    
+    it('should set a slave node if the master uuid is not itself', () => {
+      return resetNode.call(kuzzleCluster, {
+        uuid: 'master-uuid',
+        host: 'master-host',
+        port: 'master-port'
+      })
+        .then(() => {
+          should(kuzzleCluster.kuzzle.pluginsManager.trigger).be.calledTwice();
+          should(kuzzleCluster.kuzzle.pluginsManager.trigger.firstCall).be.calledWith('log:info', '[cluster] Notification: Kuzzle is ready');
+          should(kuzzleCluster.kuzzle.pluginsManager.trigger.secondCall).be.calledWith('log:info', '[cluster] uuid joined as SlaveNode on master-host:master-port');
+        });
+    });
+
+    it('should set a master node if the master uuid is itself', () => {
+      return resetNode.call(kuzzleCluster, {
+        uuid: kuzzleCluster.uuid
+      })
+        .then(() => {
+          should(kuzzleCluster.kuzzle.pluginsManager.trigger).be.calledTwice();
+          should(kuzzleCluster.kuzzle.pluginsManager.trigger.firstCall).be.calledWith('log:info', '[cluster] Notification: Kuzzle is ready');
+          should(kuzzleCluster.kuzzle.pluginsManager.trigger.secondCall).be.calledWith('log:info', '[cluster] uuid joined as MasterNode on undefined:undefined');
+        });
+    });
+    
+    it('should inform the broker if something went wrong with initing the node', () => {
+      var 
+        error = new Error('mine'),
+        reset = KuzzleCluster.__set__({
+          MasterNode: function MasterNode () {          // eslint-disable-line no-shadow
+            this.init = sandbox.stub().rejects(error);  // eslint-disable-line no-invalid-this
+          }
+        });
+      
+      return resetNode.call(kuzzleCluster, {
+        uuid: kuzzleCluster.uuid
+      })
+        .then(() => {
+          should(kuzzleCluster.kuzzle.pluginsManager.trigger).be.calledOnce();
+          should(kuzzleCluster.kuzzle.pluginsManager.trigger).be.calledWith('log:error');
+          should(kuzzleCluster.lbBroker.send).be.calledOnce();
+          should(kuzzleCluster.lbBroker.send).be.calledWith('cluster:' + kuzzleCluster.uuid, {
+            error: {
+              code: 2,
+              msg: 'Cannot communicate with master'
+            }
+          });
+          reset();
+        });
+    });
+    
+  });
+
 });

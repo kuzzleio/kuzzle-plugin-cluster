@@ -6,7 +6,8 @@
       "watch": [
         "./lib",
         "./{lib,config,bin}/**/*",
-        "../kuzzle-plugin-cluster/lib"
+        "../kuzzle-plugin-cluster/lib",
+        "../kuzzle-load-balancer/lib"
       ],
       "node_args": "--debug=7000"
     },
@@ -19,7 +20,8 @@
       "watch": [
         "./lib",
         "./{lib,config,bin}/**/*",
-        "../kuzzle-plugin-cluster/lib"
+        "../kuzzle-plugin-cluster/lib",
+        "../kuzzle-load-balancer/lib"
       ],
       "node_args": "--debug=7001"
     }

@@ -13,7 +13,7 @@ describe('lib/cluster/node', () => {
   before(() => {
     node = new Node();
 
-    node.broker = { listen: sandbox.spy() };
+    node.broker = { listen: sandbox.spy(), close: sandbox.spy() };
     node.kuzzle = {
       indexCache: {
         add: sandbox.spy(),
@@ -63,6 +63,18 @@ describe('lib/cluster/node', () => {
 
   });
 
+  describe('#destroy', () => {
+    
+    it('should do its job', () => {
+      node.destroy();
+      
+      should(node.broker.reconnect).be.false();
+      should(node.broker.close).be.calledOnce();
+      should(node.isReady).be.false();
+    });
+    
+  });
+  
   describe('#merge', () => {
     var
       merge,
