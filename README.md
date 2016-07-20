@@ -8,13 +8,13 @@ This plugin adds a cluster mode to Kuzzle.
 
 At the time this document is written, this plugin is working using the following dependencies:
 
-* Kuzzle: branch [kuz-577-lb-master-election](https://github.com/kuzzleio/kuzzle/tree/kuz-577-lb-master-election)
-* LB: branch [kuz-577-lb-master-election](https://github.com/kuzzleio/kuzzle-proxy/tree/kuz-577-lb-master-election)
+* Kuzzle: >= [1.0.0-RC4 release](https://github.com/kuzzleio/kuzzle/tree/1.0.0-RC4)
+* LB: branch [kuz-579-cluster-quarantine](https://github.com/kuzzleio/kuzzle-load-balancer/tree/kuz-579-cluster-quarantine)
 
 ```bash
 cd <dir>
-git pull -b kuz-557-lb-master-election git@github.com:kuzzleio/kuzzle.git
-git pull -b kuz-557-lb-master-election git@github.com:kuzzleio/kuzzle-proxy.git
+git pull -b 1.0.0-RC4 git@github.com:kuzzleio/kuzzle.git
+git pull -b kuz-579-cluster-quarantine git@github.com:kuzzleio/kuzzle-load-balancer.git
 git pull git@github.com:kuzzleio/kuzzle-plugin-cluster.git
 
 cd kuzzle-plugin-cluster

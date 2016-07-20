@@ -382,10 +382,49 @@ describe('lib/index', () => {
     });
 
   });
-  
-  describe('#resetNode', () => {
+ 
+  describe('#onLbMessage', () => {
     var 
-      resetNode = KuzzleCluster.__get__('resetNode');
+      onJoinedSpy = sandbox.spy(),
+      onLbMessage,
+      reset;
+    
+    before(() => {
+      reset = KuzzleCluster.__set__({
+        onJoinedLb: onJoinedSpy
+      });
+      onLbMessage = KuzzleCluster.__get__('onLbMessage');
+    });
+    
+    after(() => {
+      reset();
+    });
+    
+    it('should call `onJoinedLb` on `joined` messages', () => {
+      var msg = {action: 'joined', foo: 'bar'};
+      
+      onLbMessage.call(kuzzleCluster, msg);
+      should(KuzzleCluster.__get__('onJoinedLb')).be.calledOnce();
+      should(onJoinedSpy).be.calledOnce();
+      should(onJoinedSpy).be.calledWithExactly(msg);
+    });
+    
+    it('should log the ack response', () => {
+      var msg = {action: 'ack', on: 'test'};
+      
+      kuzzleCluster.kuzzle = pluginContext.accessors.kuzzle;
+      
+      onLbMessage.call(kuzzleCluster, msg);
+      should(kuzzleCluster.kuzzle.pluginsManager.trigger).be.calledOnce();
+      should(kuzzleCluster.kuzzle.pluginsManager.trigger).be.calledWith('log:info',
+        '[cluster] ACK for test event received from LB');
+    });
+    
+  });
+  
+  describe('#onJoinedLb', () => {
+    var 
+      onJoinedLb = KuzzleCluster.__get__('onJoinedLb');
     
     beforeEach(() => {
       kuzzleCluster.config = {
@@ -402,7 +441,7 @@ describe('lib/index', () => {
       
       kuzzleCluster.node = {destroy: spy};
       
-      return resetNode.call(kuzzleCluster, {
+      return onJoinedLb.call(kuzzleCluster, {
         uuid: kuzzleCluster.uuid
       })
         .then(() => {
@@ -411,7 +450,7 @@ describe('lib/index', () => {
     });
     
     it('should set a slave node if the master uuid is not itself', () => {
-      return resetNode.call(kuzzleCluster, {
+      return onJoinedLb.call(kuzzleCluster, {
         uuid: 'master-uuid',
         host: 'master-host',
         port: 'master-port'
@@ -424,7 +463,7 @@ describe('lib/index', () => {
     });
 
     it('should set a master node if the master uuid is itself', () => {
-      return resetNode.call(kuzzleCluster, {
+      return onJoinedLb.call(kuzzleCluster, {
         uuid: kuzzleCluster.uuid
       })
         .then(() => {
@@ -443,18 +482,18 @@ describe('lib/index', () => {
           }
         });
       
-      return resetNode.call(kuzzleCluster, {
+      return onJoinedLb.call(kuzzleCluster, {
         uuid: kuzzleCluster.uuid
       })
         .then(() => {
           should(kuzzleCluster.kuzzle.pluginsManager.trigger).be.calledOnce();
           should(kuzzleCluster.kuzzle.pluginsManager.trigger).be.calledWith('log:error');
           should(kuzzleCluster.lbBroker.send).be.calledOnce();
-          should(kuzzleCluster.lbBroker.send).be.calledWith('cluster:' + kuzzleCluster.uuid, {
-            error: {
-              code: 2,
-              msg: 'Cannot communicate with master'
-            }
+          should(kuzzleCluster.lbBroker.send).be.calledWith('cluster:status', {
+            status: 'error',
+            code: 2,
+            msg: 'Error while initting the cluster node',
+            originalError: error
           });
           reset();
         });
