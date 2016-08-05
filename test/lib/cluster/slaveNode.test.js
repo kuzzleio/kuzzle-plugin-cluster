@@ -34,7 +34,7 @@ describe('lib/cluster/slaveNode', () => {
       should(node.kuzzle).be.exactly(context.accessors.kuzzle);
       should(SlaveNode.__get__('_context')).be.exactly(context);
       should(node.options).be.exactly(options);
-      should(node.uuid).be.exactly('6uohu5GXyKj+qujAtrF1FA==');
+      should(node.uuid).be.exactly('uuid');
     });
     
     it('should inherit from Node', () => {

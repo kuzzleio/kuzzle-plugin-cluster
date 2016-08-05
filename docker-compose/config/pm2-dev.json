@@ -2,7 +2,7 @@
   "apps": [{
       "name"         : "KuzzleServer",
       "script"       : "bin/kuzzle",
-      "args"         : ["start",  "--server"],
+      "args"         : ["start"],
       "watch": [
         "./lib",
         "./{lib,config,bin}/**/*",
@@ -10,20 +10,5 @@
         "../kuzzle-load-balancer/lib"
       ],
       "node_args": "--debug=7000"
-    },
-    {
-      "name"         : "KuzzleWorker",
-      "exec_mode"    : "cluster",
-      "instances"    : 1,
-      "script"       : "bin/kuzzle",
-      "args"         : ["start", "--worker"],
-      "watch": [
-        "./lib",
-        "./{lib,config,bin}/**/*",
-        "../kuzzle-plugin-cluster/lib",
-        "../kuzzle-load-balancer/lib"
-      ],
-      "node_args": "--debug=7001"
-    }
-  ]
+    }]
 }

@@ -1,6 +1,6 @@
 {
   "name": "kuzzle-plugin-cluster",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Enterprise only - enables Kuzzle cluster mode",
   "main": "./lib/index.js",
   "scripts": {
@@ -25,7 +25,6 @@
   "homepage": "https://github.com/kuzzleio/kuzzle-plugin-cluster#readme",
   "pluginInfo": {
     "defaultConfig": {
-      "loadedBy": "server",
       "privileged": true,
       "mode": "master",
       "binding": "[eth0:ipv4]:7911",
