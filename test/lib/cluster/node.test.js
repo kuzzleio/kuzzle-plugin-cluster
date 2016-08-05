@@ -8,49 +8,77 @@ var
 
 describe('lib/cluster/node', () => {
   var
+    clusterHandler,
+    context,
+    options = {foo: 'bar'},
     node;
 
   before(() => {
-    node = new Node();
-
-    node.broker = { listen: sandbox.spy(), close: sandbox.spy() };
-    node.kuzzle = {
-      indexCache: {
-        add: sandbox.spy(),
-        remove: sandbox.spy(),
-        reset: sandbox.spy()
-      },
-      dsl: {
-        filters: {
-          add: sandbox.spy(() => {
-            return {path: 'path', filter: 'filter'};
-          }),
-          addCollectionSubscription: sandbox.spy(),
-          filters: {}
+    clusterHandler = {
+      uuid: 'uuid'
+    };
+    context = {
+      accessors: {
+        kuzzle: {
+          indexCache: {
+            add: sandbox.spy(),
+            remove: sandbox.spy(),
+            reset: sandbox.spy()
+          },
+          dsl: {
+            filters: {
+              add: sandbox.spy(() => {
+                return {path: 'path', filter: 'filter'};
+              }),
+              addCollectionSubscription: sandbox.spy(),
+              filters: {}
+            }
+          },
+          hotelClerk: {
+            rooms: {},
+            customers: {},
+            addRoomForCustomer: sandbox.spy(),
+            removeRooms: sandbox.spy(),
+            removeRoomForCustomer: sandbox.spy()
+          },
+          hooks: {
+            list: {
+              write: {broadcast: sandbox.spy()}
+            }
+          },
+          pluginsManager: {
+            trigger: sinon.spy()
+          },
+          services: {
+            list: {
+              writeEngine: {
+                setAutoRefresh: sinon.spy()
+              }
+            }
+          }
         }
-      },
-      hotelClerk: {
-        rooms: {},
-        customers: {},
-        addRoomForCustomer: sandbox.spy(),
-        removeRooms: sandbox.spy(),
-        removeRoomForCustomer: sandbox.spy()
-      },
-      hooks: {
-        list: {
-          write: {broadcast: sandbox.spy()}
-        }
-      },
-      pluginsManager: {
-        trigger: sinon.spy()
       }
     };
+    node = new Node(clusterHandler, context, options);
+
+    node.broker = { listen: sandbox.spy(), close: sandbox.spy() };
   });
 
   afterEach(() => {
     sandbox.restore();
   });
 
+  describe('#constructor', () => {
+
+    it('should construct a valid node object', () => {
+      should(node.clusterHandler).be.exactly(clusterHandler);
+      should(node.context).be.exactly(context);
+      should(node.options).be.exactly(options);
+
+      should(node.kuzzle).be.exactly(context.accessors.kuzzle);
+    });
+
+  });
 
   describe('#addDiffListeners', () => {
 
@@ -254,15 +282,15 @@ describe('lib/cluster/node', () => {
   describe('#updateAutoRefresh', () => {
     var updateAutoRefresh = Node.__get__('updateAutoRefresh');
 
-    it('should call kuzzle write:broadcast hook with a valid requestObject', () => {
+    it('should call kuzzle write engine with a valid requestObject', () => {
       var 
         requestObject;
       
       updateAutoRefresh.call(node, 'index', 'value');
-      
-      should(node.kuzzle.hooks.list.write.broadcast).be.calledOnce();
-      requestObject = node.kuzzle.hooks.list.write.broadcast.firstCall.args[0];
-      
+
+      should(node.kuzzle.services.list.writeEngine.setAutoRefresh).be.calledOnce();
+      requestObject = node.kuzzle.services.list.writeEngine.setAutoRefresh.firstCall.args[0];
+
       should(requestObject.index).be.exactly('index');
       should(requestObject.controller).be.exactly('admin');
       should(requestObject.action).be.exactly('setAutoRefresh');

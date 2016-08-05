@@ -57,18 +57,21 @@ describe('lib/index', () => {
           accessors: {kuzzle: {config: {cluster:{ foo: 'bar'}}}}
         };
 
-      kuzzleCluster.init({some: 'value'}, context, true);
-      
-      should(kuzzleCluster.config).be.eql({
-        some: 'value',
-        foo: 'bar'
+      KuzzleCluster.__with__({
+        resolveBinding: sinon.stub().returns('newBinding')
+      })(() => {
+        kuzzleCluster.init({some: 'value', binding: 'binding'}, context, true);
+
+        should(kuzzleCluster.config).be.eql({
+          binding: 'newBinding',
+          some: 'value',
+          foo: 'bar'
+        });
+
+        should(KuzzleCluster.__get__('resolveBinding')).be.calledOnce();
+        should(KuzzleCluster.__get__('resolveBinding')).be.calledWith('binding');
       });
-    });
-    
-    it('should exit before creating the node when in dummy mode', () => {
-      kuzzleCluster.init({}, pluginContext, true);
-      
-      should(kuzzleCluster.node).be.undefined();
+
     });
     
     it('should return itself', () => {
@@ -389,20 +392,21 @@ describe('lib/index', () => {
       onLbMessage,
       reset;
     
-    before(() => {
+    beforeEach(() => {
       reset = KuzzleCluster.__set__({
         onJoinedLb: onJoinedSpy
       });
       onLbMessage = KuzzleCluster.__get__('onLbMessage');
+      kuzzleCluster.kuzzle = pluginContext.accessors.kuzzle;
     });
-    
-    after(() => {
+
+    afterEach(() => {
       reset();
     });
     
     it('should call `onJoinedLb` on `joined` messages', () => {
       var msg = {action: 'joined', foo: 'bar'};
-      
+
       onLbMessage.call(kuzzleCluster, msg);
       should(KuzzleCluster.__get__('onJoinedLb')).be.calledOnce();
       should(onJoinedSpy).be.calledOnce();
@@ -415,8 +419,10 @@ describe('lib/index', () => {
       kuzzleCluster.kuzzle = pluginContext.accessors.kuzzle;
       
       onLbMessage.call(kuzzleCluster, msg);
-      should(kuzzleCluster.kuzzle.pluginsManager.trigger).be.calledOnce();
-      should(kuzzleCluster.kuzzle.pluginsManager.trigger).be.calledWith('log:info',
+      should(kuzzleCluster.kuzzle.pluginsManager.trigger).be.calledTwice();
+      should(kuzzleCluster.kuzzle.pluginsManager.trigger.firstCall).be.calledWith('log:debug',
+        '[cluster] onLbMessage: {"action":"ack","on":"test"}');
+      should(kuzzleCluster.kuzzle.pluginsManager.trigger.secondCall).be.calledWith('log:info',
         '[cluster] ACK for test event received from LB');
     });
     
