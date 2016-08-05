@@ -8,11 +8,15 @@ var
 
 describe('lib/cluster/node', () => {
   var
+    clusterHandler,
     context,
     options = {foo: 'bar'},
     node;
 
   before(() => {
+    clusterHandler = {
+      uuid: 'uuid'
+    };
     context = {
       accessors: {
         kuzzle: {
@@ -55,7 +59,7 @@ describe('lib/cluster/node', () => {
         }
       }
     };
-    node = new Node(context, options);
+    node = new Node(clusterHandler, context, options);
 
     node.broker = { listen: sandbox.spy(), close: sandbox.spy() };
   });
@@ -64,6 +68,17 @@ describe('lib/cluster/node', () => {
     sandbox.restore();
   });
 
+  describe('#constructor', () => {
+
+    it('should construct a valid node object', () => {
+      should(node.clusterHandler).be.exactly(clusterHandler);
+      should(node.context).be.exactly(context);
+      should(node.options).be.exactly(options);
+
+      should(node.kuzzle).be.exactly(context.accessors.kuzzle);
+    });
+
+  });
 
   describe('#addDiffListeners', () => {
 

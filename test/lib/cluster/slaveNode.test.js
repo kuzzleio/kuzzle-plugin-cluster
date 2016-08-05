@@ -1,5 +1,5 @@
 var
-  q = require('q'),
+  Promise = require('bluebird'),
   rewire = require('rewire'),
   should = require('should'),
   sinon = require('sinon'),
@@ -9,6 +9,9 @@ var
 
 describe('lib/cluster/slaveNode', () => {
   var
+    clusterHandler = {
+      uuid: 'uuid'
+    },
     context = {
       uuid: 'uuid',
       accessors: {
@@ -29,16 +32,14 @@ describe('lib/cluster/slaveNode', () => {
   describe('#constructor', () => {
     
     it('should create a valid slave node object', () => {
-      var node = new SlaveNode(context, options);
+      var node = new SlaveNode(clusterHandler, context, options);
       
       should(node.kuzzle).be.exactly(context.accessors.kuzzle);
-      should(SlaveNode.__get__('_context')).be.exactly(context);
       should(node.options).be.exactly(options);
-      should(node.uuid).be.exactly('uuid');
     });
     
     it('should inherit from Node', () => {
-      var node = new SlaveNode(context, options);
+      var node = new SlaveNode(clusterHandler, context, options);
       
       should(node).be.an.instanceOf(Node);
     });
@@ -48,30 +49,33 @@ describe('lib/cluster/slaveNode', () => {
     var 
       attachEventsSpy = sinon.spy(),
       wsClientSpy = sinon.spy(function () {
-        this.init = () => q();    // eslint-disable-line no-invalid-this
+        this.init = () => Promise.resolve();    // eslint-disable-line no-invalid-this
       }),
-      revert;
-    
+      reset;
+
     before(() => {
-      revert = SlaveNode.__set__({
-        _context: {
+      reset = SlaveNode.__set__({
+        attachEvents: attachEventsSpy
+      });
+    });
+
+    after(() => {
+      reset();
+    });
+    
+
+    it('should set the broker and attach the events', () => {
+      var node = {
+        clusterHandler: {
+          uuid: 'uuid'
+        },
+        context: {
           constructors: {
             services: {
               WsBrokerClient: wsClientSpy
             }
           }
         },
-        attachEvents: attachEventsSpy
-      });
-    });
-    
-    after(() => {
-      revert();
-    });
-    
-    
-    it('shoud set the broker and attach the events', () => {
-      var node = {
         options: 'options',
         kuzzle: {pluginsManager: 'pluginsManager'}
       };
@@ -98,6 +102,9 @@ describe('lib/cluster/slaveNode', () => {
       cb,
       joinSpy,
       node = {
+        clusterHandler: {
+          uuid: 'uuid'
+        },
         addDiffListener: sinon.spy(),
         broker: {
           listen: sandbox.spy((channel, callback) => { cb = callback; }),
@@ -107,8 +114,7 @@ describe('lib/cluster/slaveNode', () => {
           onConnectHandlers: []
         },
         kuzzle: context.accessors.kuzzle,
-        options: 'options',
-        uuid: 'uuid'
+        options: 'options'
       },
       reset;
     

@@ -9,8 +9,10 @@ var
 
 describe('lib/cluster/masterNode', () => {
   var
+    clusterHandler = {
+      uuid: 'uuid'
+    },
     context = {
-      uuid: 'uuid',
       accessors: {
         kuzzle: {
           services: { list: { broker: {} } },
@@ -29,18 +31,20 @@ describe('lib/cluster/masterNode', () => {
 
     it('should setup a valid master node', () => {
       var 
-        node = new MasterNode(context, options);
+        node = new MasterNode(clusterHandler, context, options);
 
+      should(node.clusterHandler).be.exactly(clusterHandler);
+      should(node.context).be.exactly(context);
       should(node.options).be.exactly(options);
       should(node.kuzzle).be.exactly(context.accessors.kuzzle);
-      should(node.uuid).be.exactly(context.uuid);
       should(node).have.property('slaves');
       should(node.slaves).be.an.Object();
       should(node.slaves).be.empty();
+      should(node.isReady).be.false();
     });
     
     it('should inherit from Node', () => {
-      var node = new MasterNode(context, options);
+      var node = new MasterNode(clusterHandler, context, options);
       
       should(node).be.an.instanceOf(Node);
     });
@@ -55,7 +59,7 @@ describe('lib/cluster/masterNode', () => {
     
     before(() => {
       revert = MasterNode.__set__('attachEvents', spy);
-      node = new MasterNode(context, options);
+      node = new MasterNode(clusterHandler, context, options);
     });
     
     after(() => {
