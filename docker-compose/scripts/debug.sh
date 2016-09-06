@@ -1,27 +1,18 @@
 #!/bin/sh
 
 elastic=${READ_ENGINE_HOST:-elasticsearch:9200}
-rabbit=${MQ_BROKER_HOST:-rabbit}
-rabbitPort=${MQ_BROKER_PORT:-5672}
 
 apk update
 apk add openssh
 
 npm install
 
-while ! curl -silent -output /dev/null http://$elastic > /dev/null
+while ! curl -silent -output /dev/null "http://${elastic}" > /dev/null
 do
  echo "$(date) - still trying connecting to http://$elastic"
   sleep 1
 done
 echo "$(date) - connected successfully to ElasticSearch"
-
-while ! nmap -p $rabbitPort $rabbit
-do
-  echo "$(date) - still trying connecting to http://$rabbit:$rabbitPort"
-  sleep 1
-done
-echo "$(date) - connected successfully to RabbitMQ"
 
 echo "Starting Kuzzle..."
 
