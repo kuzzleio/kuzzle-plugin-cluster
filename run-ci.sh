@@ -2,4 +2,6 @@
 
 set -e
 
-docker-compose -f "docker-compose/docker-compose-ci.yml" run kuzzle1
+docker-compose -f "docker-compose/docker-compose-ci.yml" up -d
+sleep 120
+docker exec -ti dockercompose_kuzzle1_1

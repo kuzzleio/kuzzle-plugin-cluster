@@ -20,7 +20,7 @@ services:
   kuzzle1:
     image: kuzzleio/test:alpine
     container_name: kuzzle1
-    command: sh -c '/run.sh'
+    command: bash /scripts/debug.sh
     networks:
       - kuzzle-cluster
     volumes:
