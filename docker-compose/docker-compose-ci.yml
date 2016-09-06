@@ -18,7 +18,7 @@ services:
       - lb_backendMode=round-robin
 
   kuzzle1:
-    image: kuzzleio/test:alpine
+    image: kuzzleio/dev:alpine
     container_name: kuzzle1
     command: bash /scripts/debug.sh
     networks:

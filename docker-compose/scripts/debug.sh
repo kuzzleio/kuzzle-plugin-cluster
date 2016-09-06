@@ -4,6 +4,9 @@ elastic=${READ_ENGINE_HOST:-elasticsearch:9200}
 rabbit=${MQ_BROKER_HOST:-rabbit}
 rabbitPort=${MQ_BROKER_PORT:-5672}
 
+apk update
+apk add openssh-client
+
 npm install
 
 while ! curl -silent -output /dev/null http://$elastic > /dev/null
