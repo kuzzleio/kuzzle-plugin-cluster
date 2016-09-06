@@ -83,11 +83,6 @@ services:
       - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__activated=true
       - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__privileged=true
 
-  rabbit:
-    image: kuzzleio/rabbitmq:alpine
-    networks:
-      - kuzzle-cluster
-
   redis:
     image: redis:3.0-alpine
     networks: [kuzzle-cluster]
