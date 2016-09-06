@@ -2,7 +2,6 @@
 
 # Cluster mode plugin
 
-Test concourse
 This plugin adds a cluster mode to Kuzzle.
 
 ## How to set it up
