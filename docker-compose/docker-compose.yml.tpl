@@ -13,6 +13,7 @@ services:
     ports:
       - "7511:7511"
       - "7512:7512"
+      - "7513:7513"
     environment:
       - lb_backendMode=round-robin
 
