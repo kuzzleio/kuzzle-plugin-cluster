@@ -5,7 +5,7 @@ rabbit=${MQ_BROKER_HOST:-rabbit}
 rabbitPort=${MQ_BROKER_PORT:-5672}
 
 apk update
-apk add openssh-client
+apk add openssh
 
 npm install
 
