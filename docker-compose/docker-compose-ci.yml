@@ -32,7 +32,6 @@ services:
       - "..:/var/kuzzle-plugin-cluster"
     ports:
       - "8080:8080"
-      - "8081:8081"
     environment:
       - FEATURE_COVERAGE
       - kuzzle_cluster__retryInterval=2000
