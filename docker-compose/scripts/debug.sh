@@ -17,4 +17,4 @@ do
 done
 echo "$(date) - connected successfully to ElasticSearch"
 
-/bin/ash /script/run-kuzzle
+/bin/ash /scripts/run-kuzzle
