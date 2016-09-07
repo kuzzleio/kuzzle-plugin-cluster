@@ -11,9 +11,9 @@ docker exec -ti kuzzle1 chmod u+x /scripts/run-test.sh
 docker exec -ti kuzzle2 chmod u+x /scripts/run-kuzzle.sh
 docker exec -ti kuzzle3 chmod u+x /scripts/run-kuzzle.sh
 
-docker exec -ti kuzzle1 chmod u+x /bin/sh -c '/scripts/run-kuzzle.sh'
-docker exec -ti kuzzle2 chmod u+x /bin/sh -c '/scripts/run-kuzzle.sh'
-docker exec -ti kuzzle3 chmod u+x /bin/sh -c '/scripts/run-kuzzle.sh'
+docker exec -ti kuzzle1 chmod u+x /bin/sh -c '/scripts/run-kuzzle.sh' &
+docker exec -ti kuzzle2 chmod u+x /bin/sh -c '/scripts/run-kuzzle.sh' &
+docker exec -ti kuzzle3 chmod u+x /bin/sh -c '/scripts/run-kuzzle.sh' &
 
 sleep 120
 
