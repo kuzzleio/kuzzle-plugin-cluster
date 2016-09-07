@@ -19,6 +19,12 @@ echo "$(date) - connected successfully to ElasticSearch"
 
 echo "Starting Kuzzle..."
 
+cd /var/kuzzle-plugin-cluster
+
+npm install --production
+
+cd /var/app
+
 npm install
 
 node bin/kuzzle install && pm2 start /config/pm2-dev.json

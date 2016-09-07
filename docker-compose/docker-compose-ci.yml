@@ -34,9 +34,9 @@ services:
       - "8080:8080"
     environment:
       - kuzzle_cluster__retryInterval=2000
-      - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
-      - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__activated=true
-      - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__privileged=true
+      - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
+      - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
+      - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
 
   kuzzle2:
     image: kuzzleio/dev:alpine
@@ -53,9 +53,9 @@ services:
       - "..:/var/kuzzle-plugin-cluster"
     environment:
       - kuzzle_cluster__retryInterval=2000
-      - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
-      - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__activated=true
-      - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__privileged=true
+      - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
+      - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
+      - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
 
   kuzzle3:
     image: kuzzleio/dev:alpine
@@ -72,9 +72,9 @@ services:
       - "..:/var/kuzzle-plugin-cluster"
     environment:
       - kuzzle_cluster__retryInterval=2000
-      - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
-      - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__activated=true
-      - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__privileged=true
+      - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
+      - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
+      - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
 
   redis:
     image: redis:3.0-alpine
