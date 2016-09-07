@@ -3,7 +3,12 @@
 elastic=${READ_ENGINE_HOST:-elasticsearch:9200}
 
 apk update
+
+echo "Install SSH"
 apk add openssh
+
+echo "Install Git"
+apk add git
 
 npm install
 
