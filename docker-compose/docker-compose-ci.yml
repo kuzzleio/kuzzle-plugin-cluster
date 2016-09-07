@@ -20,7 +20,7 @@ services:
   kuzzle1:
     image: kuzzleio/dev:alpine
     container_name: kuzzle1
-    command: bash /scripts/run-ci.sh
+    command: bash /scripts/debug.sh
     networks:
       - kuzzle-cluster
     volumes:
@@ -41,7 +41,7 @@ services:
   kuzzle2:
     image: kuzzleio/dev:alpine
     container_name: kuzzle2
-    command: bash /scripts/run-ci.sh
+    command: bash /scripts/debug.sh
     networks:
       - kuzzle-cluster
     volumes:
@@ -60,7 +60,7 @@ services:
   kuzzle3:
     image: kuzzleio/dev:alpine
     container_name: kuzzle3
-    command: bash /scripts/run-ci.sh
+    command: bash /scripts/debug.sh
     networks:
       - kuzzle-cluster
     volumes:
