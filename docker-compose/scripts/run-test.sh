@@ -20,6 +20,4 @@ if ! (echo ${E} | grep -E '"status":"(yellow|green)"' > /dev/null); then
     exit 1
 fi
 
-npm install
-
 npm test
