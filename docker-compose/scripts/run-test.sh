@@ -20,4 +20,6 @@ if ! (echo ${E} | grep -E '"status":"(yellow|green)"' > /dev/null); then
     exit 1
 fi
 
+ping -c 5 github.com
+
 npm test
