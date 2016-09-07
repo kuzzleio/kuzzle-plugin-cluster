@@ -33,7 +33,6 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - FEATURE_COVERAGE
       - kuzzle_cluster__retryInterval=2000
       - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__activated=true
@@ -53,7 +52,6 @@ services:
       - "./config:/config"
       - "..:/var/kuzzle-plugin-cluster"
     environment:
-      - FEATURE_COVERAGE
       - kuzzle_cluster__retryInterval=2000
       - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__activated=true
@@ -73,7 +71,6 @@ services:
       - "./config:/config"
       - "..:/var/kuzzle-plugin-cluster"
     environment:
-      - FEATURE_COVERAGE
       - kuzzle_cluster__retryInterval=2000
       - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__activated=true
