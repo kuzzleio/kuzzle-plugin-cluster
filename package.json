@@ -26,7 +26,6 @@
   "pluginInfo": {
     "defaultConfig": {
       "privileged": true,
-      "mode": "master",
       "binding": "[eth0:ipv4]:7911",
       "retryInterval": 2000
     }
