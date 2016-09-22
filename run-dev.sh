@@ -59,7 +59,7 @@ fi
 docker-compose -f "$COMPOSE_FILE" stop
 docker-compose -f "$COMPOSE_FILE" rm -fva 2> /dev/null
 docker-compose -f "$COMPOSE_FILE" up -d
-docker-compose -f "$COMPOSE_FILE" logs -f loadbalancer kuzzle1 kuzzle2 kuzzle3
+docker-compose -f "$COMPOSE_FILE" logs loadbalancer kuzzle1 kuzzle2 kuzzle3
 
 
 

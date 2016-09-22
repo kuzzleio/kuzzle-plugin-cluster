@@ -32,9 +32,7 @@ services:
       - "..:/var/kuzzle-plugin-cluster"
     ports:
       - "8080:8080"
-      - "8081:8081"
     environment:
-      - MQ_BROKER_ENABLED=1
       - FEATURE_COVERAGE
       - kuzzle_cluster__retryInterval=2000
       - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
@@ -82,11 +80,6 @@ services:
       - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__activated=true
       - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__privileged=true
-
-  rabbit:
-    image: kuzzleio/rabbitmq:alpine
-    networks:
-      - kuzzle-cluster
 
   redis:
     image: redis:3.0-alpine

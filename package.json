@@ -1,6 +1,6 @@
 {
   "name": "kuzzle-plugin-cluster",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Enterprise only - enables Kuzzle cluster mode",
   "main": "./lib/index.js",
   "scripts": {
@@ -25,18 +25,15 @@
   "homepage": "https://github.com/kuzzleio/kuzzle-plugin-cluster#readme",
   "pluginInfo": {
     "defaultConfig": {
-      "loadedBy": "server",
       "privileged": true,
       "binding": "[eth0:ipv4]:7911",
       "retryInterval": 2000
     }
   },
   "dependencies": {
-    "crypto-md5": "^1.0.0",
-    "kuzzle-common-objects": "git+https://github.com/kuzzleio/kuzzle-common-objects.git#1.0.0",
-    "lodash": "^4.13.1",
-    "node-uuid": "^1.4.7",
-    "q": "^1.4.1"
+    "bluebird": "^3.4.1",
+    "kuzzle-common-objects": "^1.0.2",
+    "lodash": "^4.13.1"
   },
   "devDependencies": {
     "eslint": "^2.11.1",
