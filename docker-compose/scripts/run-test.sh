@@ -2,6 +2,9 @@
 
 ELASTIC="elasticsearch:9200"
 
+echo "Wait 120 seconds"
+sleep 120
+
 echo "Waiting for elasticsearch to be available"
 while ! curl -f -s -o /dev/null "http://$ELASTIC"
 do
