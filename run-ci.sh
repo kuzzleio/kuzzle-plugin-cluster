@@ -3,6 +3,7 @@
 set -e
 
 docker-compose -f "docker-compose/docker-compose-ci.yml" up -d
+docker-compose -f "$COMPOSE_FILE" logs loadbalancer kuzzle1 kuzzle2 kuzzle3
 
 sleep 120
 
