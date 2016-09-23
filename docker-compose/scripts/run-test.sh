@@ -2,9 +2,6 @@
 
 ELASTIC="elasticsearch:9200"
 
-echo "Wait 120 seconds"
-sleep 120
-
 echo "Waiting for elasticsearch to be available"
 while ! curl -f -s -o /dev/null "http://$ELASTIC"
 do
@@ -22,5 +19,8 @@ if ! (echo ${E} | grep -E '"status":"(yellow|green)"' > /dev/null); then
     echo "Could not connect to elasticsearch in time. Aborting..."
     exit 1
 fi
+
+echo "Wait 120 seconds"
+sleep 120
 
 npm test
