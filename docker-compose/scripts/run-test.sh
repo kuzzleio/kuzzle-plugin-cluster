@@ -20,7 +20,7 @@ if ! (echo ${E} | grep -E '"status":"(yellow|green)"' > /dev/null); then
     exit 1
 fi
 
-echo "Wait 120 seconds"
+echo "Sleeping 120"
 sleep 120
 
 npm test
