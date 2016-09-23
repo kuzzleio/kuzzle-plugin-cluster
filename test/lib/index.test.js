@@ -25,8 +25,10 @@ describe('lib/index', () => {
     pluginContext = {
       accessors: {kuzzle: {
         config: {
-          internalBroker: {
-            port: 999
+          services: {
+            internalBroker: {
+              port: 999
+            }
           },
           cluster: {
             binding: '_host:666'
@@ -357,7 +359,7 @@ describe('lib/index', () => {
       revert = KuzzleCluster.__set__({
         _context: {
           accessors: {
-            kuzzle: {config: {internalBroker: {port: 999}}}
+            kuzzle: {config: { services: {internalBroker: {port: 999}}}}
           }
         }
       });
