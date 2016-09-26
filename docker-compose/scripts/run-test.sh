@@ -24,6 +24,6 @@ if ! (echo ${E} | grep -E '"status":"(yellow|green)"' > /dev/null); then
 fi
 
 echo "Sleeping 360"
-sleep 360
+#sleep 360
 
 npm test
