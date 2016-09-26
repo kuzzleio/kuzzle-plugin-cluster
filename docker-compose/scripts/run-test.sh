@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e
+set -eu
 echo "Run the tests..."
 
 ELASTIC="elasticsearch:9200"
