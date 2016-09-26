@@ -20,7 +20,7 @@ if ! (echo ${E} | grep -E '"status":"(yellow|green)"' > /dev/null); then
     exit 1
 fi
 
-echo "Sleeping 120"
-sleep 120
+#echo "Sleeping 120"
+#sleep 120
 
-npm run --silent lint && npm run functional-testing && npm run unit-testing --coverage && npm run crawl-coverage
+#npm test
