@@ -22,8 +22,5 @@ if ! (echo ${E} | grep -E '"status":"(yellow|green)"' > /dev/null); then
     echo "Could not connect to elasticsearch in time. Aborting..."
     exit 1
 fi
-
-echo "Sleeping 360"
-sleep 360
-
+echo "Doing npm test"
 npm test
