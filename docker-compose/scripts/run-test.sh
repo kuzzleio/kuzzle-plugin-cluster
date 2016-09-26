@@ -1,5 +1,6 @@
 #!/bin/sh
 
+set -e
 echo "Run the tests..."
 
 ELASTIC="elasticsearch:9200"
@@ -22,7 +23,7 @@ if ! (echo ${E} | grep -E '"status":"(yellow|green)"' > /dev/null); then
     exit 1
 fi
 
-#echo "Sleeping 120"
-#sleep 120
+echo "Sleeping 360"
+sleep 360
 
-#npm test
+npm test
