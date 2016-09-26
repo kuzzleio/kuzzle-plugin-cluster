@@ -23,4 +23,4 @@ fi
 echo "Sleeping 120"
 sleep 120
 
-npm test
+npm run --silent lint && npm run functional-testing && npm run unit-testing --coverage && npm run crawl-coverage
