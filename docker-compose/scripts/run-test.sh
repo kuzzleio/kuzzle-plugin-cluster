@@ -1,7 +1,6 @@
 #!/bin/sh
 
 set -eu
-echo "Run the tests..."
 
 ELASTIC="elasticsearch:9200"
 
@@ -22,5 +21,5 @@ if ! (echo ${E} | grep -E '"status":"(yellow|green)"' > /dev/null); then
     echo "Could not connect to elasticsearch in time. Aborting..."
     exit 1
 fi
-echo "Doing npm test"
+
 npm test
