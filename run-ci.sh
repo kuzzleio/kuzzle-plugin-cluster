@@ -9,8 +9,5 @@ sleep 120
 
 docker exec kuzzle1 chmod u+x /scripts/run-test.sh
 
-trap "docker exec -ti kuzzle1 /bin/sh -c '/scripts/run-test.sh'" EXIT
-
-echo "Sleeping 360"
-sleep 360
+docker exec -ti kuzzle1 /bin/sh -c '/scripts/run-test.sh'
 
