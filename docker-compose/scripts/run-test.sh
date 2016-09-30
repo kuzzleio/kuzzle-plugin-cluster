@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -eu
+
 ELASTIC="elasticsearch:9200"
 
 echo "Waiting for elasticsearch to be available"
