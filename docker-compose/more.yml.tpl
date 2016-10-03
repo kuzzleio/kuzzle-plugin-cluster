@@ -17,11 +17,11 @@ services:
       - MQ_BROKER_ENABLED=1
       - FEATURE_COVERAGE
       - kuzzle_cluster__retryInterval=2000
-      - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
-      - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__activated=true
-      - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__privileged=true
+      - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
+      - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
+      - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
 
-  kuzzle5:
+kuzzle5:
     image: ${KUZ_IMAGE}
     container_name: kuzzle5
     command: bash /scripts/debug.sh
@@ -37,9 +37,9 @@ services:
       - MQ_BROKER_ENABLED=1
       - FEATURE_COVERAGE
       - kuzzle_cluster__retryInterval=2000
-      - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
-      - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__activated=true
-      - kuzzle_pluginsManager__defaultPlugins__kuzzle-plugin-cluster__privileged=true
+      - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
+      - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
+      - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
 
 networks:
   kuzzle-cluster:

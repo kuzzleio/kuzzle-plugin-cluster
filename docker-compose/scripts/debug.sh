@@ -17,6 +17,10 @@ do
 done
 echo "$(date) - connected successfully to ElasticSearch"
 
+
+rm -rf /var/app/node_modules/*
+rm -rf /var/kuzzle-plugin-cluster/node_modules/*
+
 echo "Starting Kuzzle..."
 
 cd /var/kuzzle-plugin-cluster

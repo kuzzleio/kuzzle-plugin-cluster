@@ -50,7 +50,6 @@ describe('lib/index', () => {
     sandbox.restore();
   });
 
-
   describe('#init', () => {
 
     it('should extend its config with Kuzzle cluster one', () => {

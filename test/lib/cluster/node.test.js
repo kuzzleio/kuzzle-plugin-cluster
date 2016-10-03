@@ -41,17 +41,12 @@ describe('lib/cluster/node', () => {
             removeRooms: sandbox.spy(),
             removeRoomForCustomer: sandbox.spy()
           },
-          hooks: {
-            list: {
-              write: {broadcast: sandbox.spy()}
-            }
-          },
           pluginsManager: {
             trigger: sinon.spy()
           },
           services: {
             list: {
-              writeEngine: {
+              storageEngine: {
                 setAutoRefresh: sinon.spy()
               }
             }
@@ -288,8 +283,8 @@ describe('lib/cluster/node', () => {
       
       updateAutoRefresh.call(node, 'index', 'value');
 
-      should(node.kuzzle.services.list.writeEngine.setAutoRefresh).be.calledOnce();
-      requestObject = node.kuzzle.services.list.writeEngine.setAutoRefresh.firstCall.args[0];
+      should(node.kuzzle.services.list.storageEngine.setAutoRefresh).be.calledOnce();
+      requestObject = node.kuzzle.services.list.storageEngine.setAutoRefresh.firstCall.args[0];
 
       should(requestObject.index).be.exactly('index');
       should(requestObject.controller).be.exactly('admin');
