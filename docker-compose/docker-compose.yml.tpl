@@ -30,10 +30,14 @@ services:
       - "./scripts:/scripts"
       - "./config:/config"
       - "..:/var/kuzzle-plugin-cluster"
+      - "./tmp/kuzzle1/plugin-cluster/node_modules:/var/kuzzle-plugin-cluster/node_modules"
     ports:
       - "8080:8080"
     environment:
       - FEATURE_COVERAGE
+      - kuzzle_services__db__host=elasticsearch
+      - kuzzle_services__internalCache__node__host=redis
+      - kuzzle_services__memoryStorage__node__host=redis
       - kuzzle_cluster__retryInterval=2000
       - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
@@ -52,9 +56,13 @@ services:
       - "./scripts:/scripts"
       - "./config:/config"
       - "..:/var/kuzzle-plugin-cluster"
+      - "./tmp/kuzzle2/plugin-cluster/node_modules:/var/kuzzle-plugin-cluster/node_modules"
     environment:
       - MQ_BROKER_ENABLED=1
       - FEATURE_COVERAGE
+      - kuzzle_services__db__host=elasticsearch
+      - kuzzle_services__internalCache__node__host=redis
+      - kuzzle_services__memoryStorage__node__host=redis
       - kuzzle_cluster__retryInterval=2000
       - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
@@ -73,9 +81,13 @@ services:
       - "./scripts:/scripts"
       - "./config:/config"
       - "..:/var/kuzzle-plugin-cluster"
+      - "./tmp/kuzzle3/plugin-cluster/node_modules:/var/kuzzle-plugin-cluster/node_modules"
     environment:
       - MQ_BROKER_ENABLED=1
       - FEATURE_COVERAGE
+      - kuzzle_services__db__host=elasticsearch
+      - kuzzle_services__internalCache__node__host=redis
+      - kuzzle_services__memoryStorage__node__host=redis
       - kuzzle_cluster__retryInterval=2000
       - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
@@ -86,7 +98,7 @@ services:
     networks: [kuzzle-cluster]
 
   elasticsearch:
-    image: kuzzleio/elasticsearch
+    image: kuzzleio/elasticsearch:2.3.4
     networks: [kuzzle-cluster]
 
 networks:
