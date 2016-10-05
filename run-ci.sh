@@ -4,6 +4,8 @@ set -eu
 
 ES=0
 
+docker-compose -f "docker-compose/docker-compose-ci.yml" rm -f
+docker-compose -f "docker-compose/docker-compose-ci.yml" pull
 docker-compose -f "docker-compose/docker-compose-ci.yml" up -d
 
 echo "Sleeping 90"
