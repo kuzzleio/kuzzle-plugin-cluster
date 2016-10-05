@@ -8,8 +8,8 @@ docker-compose -f "docker-compose/docker-compose-ci.yml" stop
 docker-compose -f "docker-compose/docker-compose-ci.yml" rm -fva 2> /dev/null
 docker-compose -f "docker-compose/docker-compose-ci.yml" up -d
 
-echo "Sleeping 480"
-sleep 480
+echo "Sleeping 120"
+sleep 120
 
 docker exec kuzzle1 chmod u+x /scripts/run-test.sh
 
