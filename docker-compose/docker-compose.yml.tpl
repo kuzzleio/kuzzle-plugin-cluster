@@ -38,6 +38,7 @@ services:
       - kuzzle_services__db__host=elasticsearch
       - kuzzle_services__internalCache__node__host=redis
       - kuzzle_services__memoryStorage__node__host=redis
+      - kuzzle_services__proxyBroker__host=kuzzle_lb
       - kuzzle_cluster__retryInterval=2000
       - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
@@ -63,6 +64,7 @@ services:
       - kuzzle_services__db__host=elasticsearch
       - kuzzle_services__internalCache__node__host=redis
       - kuzzle_services__memoryStorage__node__host=redis
+      - kuzzle_services__proxyBroker__host=kuzzle_lb
       - kuzzle_cluster__retryInterval=2000
       - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
@@ -88,6 +90,7 @@ services:
       - kuzzle_services__db__host=elasticsearch
       - kuzzle_services__internalCache__node__host=redis
       - kuzzle_services__memoryStorage__node__host=redis
+      - kuzzle_services__proxyBroker__host=kuzzle_lb
       - kuzzle_cluster__retryInterval=2000
       - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
