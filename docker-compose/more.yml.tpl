@@ -3,7 +3,7 @@ version: "2"
 services:
   kuzzle4:
     image: ${KUZ_IMAGE}
-    container_name: kuzzle1
+    container_name: kuzzle4
     command: sh -c 'chmod 755 /scripts/run-dev.sh && /scripts/run-dev.sh'
     networks:
       - kuzzle-cluster
@@ -27,7 +27,7 @@ services:
 
   kuzzle5:
     image: ${KUZ_IMAGE}
-    container_name: kuzzle1
+    container_name: kuzzle5
     command: sh -c 'chmod 755 /scripts/run-dev.sh && /scripts/run-dev.sh'
     networks:
       - kuzzle-cluster
