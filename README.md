@@ -1,4 +1,3 @@
-![logo](http://kuzzle.io/images/logoS.png)
 
 # Cluster mode plugin
 
