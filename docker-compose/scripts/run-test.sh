@@ -22,4 +22,14 @@ if ! (echo ${E} | grep -E '"status":"(yellow|green)"' > /dev/null); then
     exit 1
 fi
 
+echo "Waiting for the whole cluster to be up and running"
+
+while ! curl --silent http://api:7511/api/1.0/_plugin/kuzzle-plugin-cluster/status 2>&1 | grep -e \"nodesCount\":3 > /dev/null
+do
+    echo "$(date) - still waiting for the whole cluster to be up and running"
+    sleep 1
+done
+
+echo "The whole cluster to be up and running. Let's start the tests!"
+
 npm test
