@@ -18,35 +18,35 @@ describe('lib/cluster/slaveNode', () => {
         kuzzle: {
           services: { list: { broker: {} } },
           hotelClerk: { rooms: 'rooms', customers: 'customers' },
-          dsl: { filters: { filtersTree: 'filterTree', filters: 'filters' } },
+          dsl: { filters: { filters: 'filters' } },
           indexCache: { indexes: 'indexes' }
         }
       }
     },
     options = {binding: 'binding', host: '_host', port: '_port'};
-  
+
   afterEach(() => {
     sandbox.restore();
   });
 
   describe('#constructor', () => {
-    
+
     it('should create a valid slave node object', () => {
       var node = new SlaveNode(clusterHandler, context, options);
-      
+
       should(node.kuzzle).be.exactly(context.accessors.kuzzle);
       should(node.options).be.exactly(options);
     });
-    
+
     it('should inherit from Node', () => {
       var node = new SlaveNode(clusterHandler, context, options);
-      
+
       should(node).be.an.instanceOf(Node);
     });
   });
 
   describe('#init', () => {
-    var 
+    var
       attachEventsSpy = sinon.spy(),
       wsClientSpy = sinon.spy(function () {
         this.init = () => Promise.resolve();    // eslint-disable-line no-invalid-this
@@ -62,7 +62,7 @@ describe('lib/cluster/slaveNode', () => {
     after(() => {
       reset();
     });
-    
+
 
     it('should set the broker and attach the events', () => {
       var node = {
@@ -79,7 +79,7 @@ describe('lib/cluster/slaveNode', () => {
         options: 'options',
         kuzzle: {pluginsManager: 'pluginsManager'}
       };
-      
+
       return SlaveNode.prototype.init.call(node)
         .then(() => {
           should(node.broker).be.an.Object();
@@ -93,9 +93,9 @@ describe('lib/cluster/slaveNode', () => {
           should(attachEventsSpy).be.calledOnce();
         });
     });
-    
+
   });
-  
+
   describe('#attachEvents', () => {
     var
       attachEvents = SlaveNode.__get__('attachEvents'),
@@ -117,12 +117,12 @@ describe('lib/cluster/slaveNode', () => {
         options: 'options'
       },
       reset;
-    
+
     before(() => {
       joinSpy = sandbox.spy(SlaveNode.__get__('join'));
       reset = SlaveNode.__set__('join', joinSpy);
     });
-    
+
     after(() => {
       reset();
     });
@@ -142,22 +142,22 @@ describe('lib/cluster/slaveNode', () => {
       should(node.broker.onConnectHandlers).have.length(1);
       should(node.broker.onCloseHandlers).have.length(1);
       should(node.broker.onErrorHandlers).have.length(1);
-      
+
       // onJoin
       node.isReady = false;
       node.broker.onConnectHandlers[0]();
       should(joinSpy).have.callCount(2);
-      
+
       // onClose
       node.isReady = true;
       node.broker.onCloseHandlers[0]();
       should(node.isReady).be.false();
-      
+
       // onError
       node.isReady = true;
       node.broker.onErrorHandlers[0]();
       should(node.isReady).be.false();
-      
+
       // cb
       cb.call(node, {
         action: 'snapshot',
@@ -167,14 +167,14 @@ describe('lib/cluster/slaveNode', () => {
           ic: 'uindexCache'
         }
       });
-      
+
       should(node.kuzzle.hotelClerk.rooms).be.exactly('urooms');
       should(node.kuzzle.hotelClerk.customers).be.exactly('ucustomers');
       should(node.kuzzle.dsl.filters.filtersTree).be.exactly('ufiltersTree');
       should(node.kuzzle.dsl.filters.filters).be.exactly('ufilters');
       should(node.kuzzle.indexCache.indexes).be.exactly('uindexCache');
-      
-      
+
+
     });
 
   });
