@@ -17,12 +17,12 @@ describe('lib/cluster/masterNode', () => {
         kuzzle: {
           services: { list: { broker: {} } },
           hotelClerk: { rooms: 'rooms', customers: 'customers' },
-          dsl: { filters: { filtersTree: 'filterTree', filters: 'filters' } },
+          dsl: { filters: { filters: 'filters' } },
           indexCache: { indexes: 'indexes' }
         }
       }},
     options = {some: 'options'};
-  
+
   afterEach(() => {
     sandbox.restore();
   });
@@ -30,7 +30,7 @@ describe('lib/cluster/masterNode', () => {
   describe('#constructor', () => {
 
     it('should setup a valid master node', () => {
-      var 
+      var
         node = new MasterNode(clusterHandler, context, options);
 
       should(node.clusterHandler).be.exactly(clusterHandler);
@@ -42,33 +42,33 @@ describe('lib/cluster/masterNode', () => {
       should(node.slaves).be.empty();
       should(node.isReady).be.false();
     });
-    
+
     it('should inherit from Node', () => {
       var node = new MasterNode(clusterHandler, context, options);
-      
+
       should(node).be.an.instanceOf(Node);
     });
-    
+
   });
 
   describe('#init', () => {
-    var 
+    var
       node,
       spy = sinon.spy(),
       revert;
-    
+
     before(() => {
       revert = MasterNode.__set__('attachEvents', spy);
       node = new MasterNode(clusterHandler, context, options);
     });
-    
+
     after(() => {
       revert();
     });
 
     it('should set the broker and attach the listeners', () => {
       node.init();
-      
+
       should(node.broker).be.exactly(context.accessors.kuzzle.services.list.broker);
       should(spy).be.calledOnce();
     });
@@ -92,29 +92,29 @@ describe('lib/cluster/masterNode', () => {
         slaves: {}
       },
       revert;
-    
+
     before(() => {
       revert = MasterNode.__set__({
         _context: 'context',
         Slave
       });
     });
-    
+
     after(() => {
       revert();
     });
 
     it('should do its job', () => {
-      
+
       attachEvents.call(node);
-      
+
       should(node.broker.listen).be.calledOnce();
       should(node.broker.listen).be.calledWith('cluster:join', cb);
       should(node.addDiffListener).be.calledOnce();
-      
+
       // cb test
       cb.call(node, {uuid:'foobar', options: {binding: 'binding'}});
-      
+
       should(node.broker.send).be.calledOnce();
       should(node.broker.send).be.calledWith('cluster:foobar', {
         action: 'snapshot',
@@ -130,9 +130,9 @@ describe('lib/cluster/masterNode', () => {
           ic: context.accessors.kuzzle.indexCache.indexes
         }
       });
-      
+
       should(node.broker.onErrorHandlers).have.length(1);
-      
+
       node.isReady = true;
       node.broker.onErrorHandlers[0]();
       should(node.isReady).be.false();
