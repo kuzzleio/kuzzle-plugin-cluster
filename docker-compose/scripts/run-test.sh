@@ -30,6 +30,6 @@ do
     sleep 1
 done
 
-echo "The whole cluster to be up and running. Let's start the tests!"
+echo "The cluster is up. Start the tests."
 
 npm test
