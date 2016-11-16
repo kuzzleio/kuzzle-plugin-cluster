@@ -2,24 +2,25 @@ version: "2"
 
 services:
   loadbalancer:
-    image: kuzzleio/dev
+    image: kuzzleio/proxy-dev
     container_name: kuzzle_lb
-    command: sh -c 'chmod 755 /var/app/docker-compose/scripts/run-dev.sh && /var/app/docker-compose/scripts/run-dev.sh'
     networks:
       kuzzle-cluster:
         aliases:
           - api
     volumes:
-      - "../../kuzzle-load-balancer/docker-compose/config/pm2-dev.json:/config/pm2.json"
+      - "../../kuzzle-load-balancer:/var/app"
     ports:
-      - "7511-7513:7511-7513"
+      - "7511:7511"
+      - "7512:7512"
+      - "7513:7513"
     environment:
       - lb_backendMode=round-robin
 
   kuzzle1:
     image: kuzzleio/dev
     container_name: kuzzle1
-    command: sh -c 'chmod 755 /scripts/run-dev.sh && /scripts/run-dev.sh'
+    command: bash /scripts/debug.sh
     networks:
       - kuzzle-cluster
     volumes:
@@ -27,7 +28,7 @@ services:
       - "../../kuzzle-load-balancer:/var/kuzzle-load-balancer"
       - "./tmp/kuzzle1/node_modules:/var/app/node_modules"
       - "./scripts:/scripts"
-      - "./config/pm2-dev.json:/config/pm2.json"
+      - "./config:/config"
       - "..:/var/kuzzle-plugin-cluster"
       - "./tmp/kuzzle1/plugin-cluster/node_modules:/var/kuzzle-plugin-cluster/node_modules"
     ports:
@@ -45,17 +46,17 @@ services:
   kuzzle2:
     image: kuzzleio/dev
     container_name: kuzzle2
-    command: sh -c 'chmod 755 /scripts/run-dev.sh && /scripts/run-dev.sh'
+    command: bash /scripts/debug.sh
     networks:
       - kuzzle-cluster
     volumes:
       - "../../kuzzle:/var/app"
       - "../../kuzzle-load-balancer:/var/kuzzle-load-balancer"
-      - "./tmp/kuzzle1/node_modules:/var/app/node_modules"
+      - "./tmp/kuzzle2/node_modules:/var/app/node_modules"
       - "./scripts:/scripts"
-      - "./config/pm2-dev.json:/config/pm2.json"
+      - "./config:/config"
       - "..:/var/kuzzle-plugin-cluster"
-      - "./tmp/kuzzle1/plugin-cluster/node_modules:/var/kuzzle-plugin-cluster/node_modules"
+      - "./tmp/kuzzle2/plugin-cluster/node_modules:/var/kuzzle-plugin-cluster/node_modules"
     environment:
       - kuzzle_cluster__retryInterval=2000
       - kuzzle_services__db__host=elasticsearch
@@ -69,17 +70,17 @@ services:
   kuzzle3:
     image: kuzzleio/dev
     container_name: kuzzle3
-    command: sh -c 'chmod 755 /scripts/run-dev.sh && /scripts/run-dev.sh'
+    command: bash /scripts/debug.sh
     networks:
       - kuzzle-cluster
     volumes:
       - "../../kuzzle:/var/app"
       - "../../kuzzle-load-balancer:/var/kuzzle-load-balancer"
-      - "./tmp/kuzzle1/node_modules:/var/app/node_modules"
+      - "./tmp/kuzzle3/node_modules:/var/app/node_modules"
       - "./scripts:/scripts"
-      - "./config/pm2-dev.json:/config/pm2.json"
+      - "./config:/config"
       - "..:/var/kuzzle-plugin-cluster"
-      - "./tmp/kuzzle1/plugin-cluster/node_modules:/var/kuzzle-plugin-cluster/node_modules"
+      - "./tmp/kuzzle3/plugin-cluster/node_modules:/var/kuzzle-plugin-cluster/node_modules"
     environment:
       - kuzzle_cluster__retryInterval=2000
       - kuzzle_services__db__host=elasticsearch
