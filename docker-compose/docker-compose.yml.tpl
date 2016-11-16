@@ -20,7 +20,7 @@ services:
   kuzzle1:
     image: ${KUZ_IMAGE}
     container_name: kuzzle1
-    command: bash /scripts/debug.sh
+    command: bash /scripts/run-dev.sh
     networks:
       - kuzzle-cluster
     volumes:
@@ -47,7 +47,7 @@ services:
   kuzzle2:
     image: ${KUZ_IMAGE}
     container_name: kuzzle2
-    command: bash /scripts/debug.sh
+    command: bash /scripts/run-dev.sh
     networks:
       - kuzzle-cluster
     volumes:
@@ -73,7 +73,7 @@ services:
   kuzzle3:
     image: ${KUZ_IMAGE}
     container_name: kuzzle3
-    command: bash /scripts/debug.sh
+    command: bash /scripts/run-dev.sh
     networks:
       - kuzzle-cluster
     volumes:
@@ -97,11 +97,11 @@ services:
       - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
 
   redis:
-    image: redis:3.0-alpine
+    image: redis:3.2
     networks: [kuzzle-cluster]
 
   elasticsearch:
-    image: kuzzleio/elasticsearch:2.3.4
+    image: elasticsearch:2.3.4
     networks: [kuzzle-cluster]
 
 networks:
