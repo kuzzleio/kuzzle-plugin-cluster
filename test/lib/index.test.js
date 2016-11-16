@@ -93,6 +93,7 @@ describe('lib/index', () => {
       should(kuzzleCluster.lbBroker.listen.secondCall).be.calledWith('cluster:master');
       should(kuzzleCluster.lbBroker.send).be.calledOnce();
       should(kuzzleCluster.lbBroker.send).be.calledWith('cluster:join', {
+        action: 'joined',
         uuid: kuzzleCluster.uuid,
         host: '_host',
         port: 666

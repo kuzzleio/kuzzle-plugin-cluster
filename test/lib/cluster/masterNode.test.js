@@ -10,7 +10,14 @@ var
 describe('lib/cluster/masterNode', () => {
   var
     clusterHandler = {
-      uuid: 'uuid'
+      uuid: 'uuid',
+      config: {
+        binding: {
+          host: '1.2.3.4',
+          port: 5678,
+          retryInterval: 42
+        }
+      }
     },
     context = {
       accessors: {
@@ -83,10 +90,16 @@ describe('lib/cluster/masterNode', () => {
         addDiffListener: sinon.spy(),
         broker: {
           listen: sandbox.spy((channel, callback) => { cb = callback; }),
+          broadcast: sandbox.spy((channel, callback) => { cb = callback; }),
           send: sandbox.spy(),
           onConnectHandlers: [],
           onCloseHandlers: [],
           onErrorHandlers: []
+        },
+        clusterStatus: {
+          nodesCount: 1,
+          slaves: {},
+          master: clusterHandler
         },
         kuzzle: context.accessors.kuzzle,
         slaves: {}

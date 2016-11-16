@@ -95,9 +95,7 @@ describe('lib/cluster/node', () => {
   });
 
   describe('#merge', () => {
-    var
-      merge,
-      rewireRevert;
+    var rewireRevert;
 
     before(() => {
       rewireRevert = Node.__set__({
