@@ -10,14 +10,21 @@ var
 describe('lib/cluster/masterNode', () => {
   var
     clusterHandler = {
-      uuid: 'uuid'
+      uuid: 'uuid',
+      config: {
+        binding: {
+          host: '1.2.3.4',
+          port: 5678,
+          retryInterval: 42
+        }
+      }
     },
     context = {
       accessors: {
         kuzzle: {
           services: { list: { broker: {} } },
           hotelClerk: { rooms: 'rooms', customers: 'customers' },
-          dsl: { filters: { filters: 'filters' } },
+          dsl: {storage: {}},
           indexCache: { indexes: 'indexes' }
         }
       }},
@@ -83,10 +90,16 @@ describe('lib/cluster/masterNode', () => {
         addDiffListener: sinon.spy(),
         broker: {
           listen: sandbox.spy((channel, callback) => { cb = callback; }),
+          broadcast: sandbox.spy((channel, callback) => { cb = callback; }),
           send: sandbox.spy(),
           onConnectHandlers: [],
           onCloseHandlers: [],
           onErrorHandlers: []
+        },
+        clusterStatus: {
+          nodesCount: 1,
+          slaves: {},
+          master: clusterHandler
         },
         kuzzle: context.accessors.kuzzle,
         slaves: {}
@@ -120,12 +133,16 @@ describe('lib/cluster/masterNode', () => {
         action: 'snapshot',
         data: {
           hc: {
-            rooms: context.accessors.kuzzle.hotelClerk.rooms,
-            customers: context.accessors.kuzzle.hotelClerk.customers
+            r: context.accessors.kuzzle.hotelClerk.rooms,
+            c: context.accessors.kuzzle.hotelClerk.customers
           },
-          ft: {
-            t: context.accessors.kuzzle.dsl.filters.filtersTree,
-            f: context.accessors.kuzzle.dsl.filters.filters
+          fs: {
+            i: context.accessors.kuzzle.dsl.storage.filtersIndex,
+            f: context.accessors.kuzzle.dsl.storage.filters,
+            s: context.accessors.kuzzle.dsl.storage.subfilters,
+            c: context.accessors.kuzzle.dsl.storage.conditions,
+            fp: context.accessors.kuzzle.dsl.storage.foPairs,
+            t: context.accessors.kuzzle.dsl.storage.testTables
           },
           ic: context.accessors.kuzzle.indexCache.indexes
         }

@@ -5,6 +5,16 @@ set -eu
 ELASTIC_HOST=${kuzzle_services__db__host:-elasticsearch}
 ELASTIC_PORT=${kuzzle_services__db__port:-9200}
 
+echo "[$(date --rfc-3339 seconds)][cluster] - Installing plugin cluster dependencies..."
+cd /var/kuzzle-plugin-cluster
+rm -rf /var/kuzzle-plugin-cluster/node_modules/*
+npm install --production
+
+echo "[$(date --rfc-3339 seconds)][cluster] - Installing kuzzle dependencies..."
+cd /var/app
+rm -rf /var/app/node_modules/*
+npm install
+
 echo "[$(date --rfc-3339 seconds)][cluster] - Waiting for elasticsearch to be available"
 while ! curl -f -s -o /dev/null "http://$ELASTIC_HOST:$ELASTIC_PORT"
 do
@@ -22,7 +32,9 @@ if ! (echo ${E} | grep -E '"status":"(yellow|green)"' > /dev/null); then
     exit 1
 fi
 
-echo "[$(date --rfc-3339 seconds)][cluster] - Starting Kuzzle tests..."
+echo "[$(date --rfc-3339 seconds)][cluster] - Starting Kuzzle..."
 
 pm2 start --silent /config/pm2.json
-npm test
+nohup node-inspector --web-port=8080 --debug-port=7000 > /dev/null 2>&1&
+pm2 sendSignal -s SIGUSR1 KuzzleServer
+pm2 logs --lines 0 --raw

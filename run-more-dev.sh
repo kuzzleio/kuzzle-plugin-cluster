@@ -40,7 +40,7 @@ fi
     . ./my.env
 
     # kuzzle
-    export KUZ_IMAGE=${KUZ_IMAGE:-kuzzleio/dev:alpine}
+    export KUZ_IMAGE=${KUZ_IMAGE:-kuzzleio/dev}
     export KUZ_VOLUME=""
     if [ "$KUZ_PATH" != "" ]; then
         export KUZ_VOLUME="- \"$(readlink -f ${KUZ_PATH}):/var/app\""
@@ -48,9 +48,7 @@ fi
 
     envsubst < more.yml.tpl > more.yml
 )
-docker-compose -f "$COMPOSE_FILE" stop
+docker-compose -f "$COMPOSE_FILE" kill
 docker-compose -f "$COMPOSE_FILE" rm -fva 2> /dev/null
 docker-compose -f "$COMPOSE_FILE" up -d
 docker-compose -f "$COMPOSE_FILE" logs -f
-
-
