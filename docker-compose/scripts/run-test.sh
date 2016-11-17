@@ -25,10 +25,10 @@ fi
 
 echo "[$(date --rfc-3339 seconds)][cluster] - Waiting for the whole cluster to be up and running"
 
-while ! curl --silent http://api:7511/api/1.0/_plugin/kuzzle-plugin-cluster/status 2>&1 | grep -e \"nodesCount\":3 > /dev/null
+while ! curl -m 1 --silent http://api:7511/api/1.0/_plugin/kuzzle-plugin-cluster/status 2>&1 | grep -e \"nodesCount\":3 > /dev/null
 do
     echo "[$(date --rfc-3339 seconds)][cluster] - still waiting for the whole cluster to be up and running"
-    sleep 1
+    sleep 5
 done
 
 echo "[$(date --rfc-3339 seconds)][cluster] - The cluster is up. Start the tests."

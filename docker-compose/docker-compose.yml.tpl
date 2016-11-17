@@ -6,7 +6,9 @@ services:
     container_name: loadbalancer
     command: sh -c 'chmod 755 /var/app/docker-compose/scripts/run-dev.sh && /var/app/docker-compose/scripts/run-dev.sh'
     networks:
-      - kuzzle-cluster
+      kuzzle-cluster:
+        aliases:
+          - api
     volumes:
       ${LB_VOLUME}
     ports:

@@ -6,7 +6,9 @@ services:
     container_name: kuzzle_lb
     command: sh -c 'chmod 755 /var/app/docker-compose/scripts/run-dev.sh && /var/app/docker-compose/scripts/run-dev.sh'
     networks:
-      - kuzzle-cluster
+      kuzzle-cluster:
+        aliases:
+          - api
     volumes:
       - "../../kuzzle-load-balancer/docker-compose/config/pm2-dev.json:/config/pm2.json"
       - "../../kuzzle-load-balancer:/var/app"
