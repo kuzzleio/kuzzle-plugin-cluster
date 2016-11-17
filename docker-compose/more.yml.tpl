@@ -7,6 +7,10 @@ services:
     command: sh -c 'chmod 755 /scripts/run-dev.sh && /scripts/run-dev.sh'
     networks:
       - kuzzle-cluster
+    depends_on:
+      - redis
+      - elasticsearch
+      - loadbalancer
     volumes:
       ${KUZ_VOLUME}
       ${KUZ_LB_VOLUME}
@@ -31,6 +35,10 @@ services:
     command: sh -c 'chmod 755 /scripts/run-dev.sh && /scripts/run-dev.sh'
     networks:
       - kuzzle-cluster
+    depends_on:
+      - redis
+      - elasticsearch
+      - loadbalancer
     volumes:
       ${KUZ_VOLUME}
       ${KUZ_LB_VOLUME}

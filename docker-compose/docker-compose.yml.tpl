@@ -3,7 +3,7 @@ version: "2"
 services:
   loadbalancer:
     image: ${LB_IMAGE}
-    container_name: kuzzle_lb
+    container_name: loadbalancer
     command: sh -c 'chmod 755 /var/app/docker-compose/scripts/run-dev.sh && /var/app/docker-compose/scripts/run-dev.sh'
     networks:
       - kuzzle-cluster
@@ -12,7 +12,9 @@ services:
     ports:
       - "7511-7513:7511-7513"
     environment:
-      - lb_backendMode=round-robin
+      - proxy_backend__mode=round-robin
+      - proxy_backend__host=0.0.0.0
+      - proxy_backend__socket=
 
   kuzzle1:
     image: ${KUZ_IMAGE}
@@ -20,6 +22,10 @@ services:
     command: sh -c 'chmod 755 /scripts/run-dev.sh && /scripts/run-dev.sh'
     networks:
       - kuzzle-cluster
+    depends_on:
+      - redis
+      - elasticsearch
+      - loadbalancer
     volumes:
       ${KUZ_VOLUME}
       ${KUZ_LB_VOLUME}
@@ -35,7 +41,7 @@ services:
       - kuzzle_services__db__host=elasticsearch
       - kuzzle_services__internalCache__node__host=redis
       - kuzzle_services__memoryStorage__node__host=redis
-      - kuzzle_services__proxyBroker__host=kuzzle_lb
+      - kuzzle_services__proxyBroker__host=loadbalancer
       - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
       - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
@@ -46,6 +52,10 @@ services:
     command: sh -c 'chmod 755 /scripts/run-dev.sh && /scripts/run-dev.sh'
     networks:
       - kuzzle-cluster
+    depends_on:
+      - redis
+      - elasticsearch
+      - loadbalancer
     volumes:
       ${KUZ_VOLUME}
       ${KUZ_LB_VOLUME}
@@ -59,7 +69,7 @@ services:
       - kuzzle_services__db__host=elasticsearch
       - kuzzle_services__internalCache__node__host=redis
       - kuzzle_services__memoryStorage__node__host=redis
-      - kuzzle_services__proxyBroker__host=kuzzle_lb
+      - kuzzle_services__proxyBroker__host=loadbalancer
       - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
       - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
@@ -70,6 +80,10 @@ services:
     command: sh -c 'chmod 755 /scripts/run-dev.sh && /scripts/run-dev.sh'
     networks:
       - kuzzle-cluster
+    depends_on:
+      - redis
+      - elasticsearch
+      - loadbalancer
     volumes:
       ${KUZ_VOLUME}
       ${KUZ_LB_VOLUME}
@@ -83,18 +97,18 @@ services:
       - kuzzle_services__db__host=elasticsearch
       - kuzzle_services__internalCache__node__host=redis
       - kuzzle_services__memoryStorage__node__host=redis
-      - kuzzle_services__proxyBroker__host=kuzzle_lb
+      - kuzzle_services__proxyBroker__host=loadbalancer
       - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
       - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
 
   redis:
-    image: redis:3.2-alpine
+    image: redis:3.2
     networks:
       - kuzzle-cluster
 
   elasticsearch:
-    image: kuzzleio/elasticsearch:2.3.4
+    image: elasticsearch:5.0
     networks:
       - kuzzle-cluster
 

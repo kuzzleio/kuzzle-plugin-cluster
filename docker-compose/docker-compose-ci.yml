@@ -13,7 +13,9 @@ services:
     ports:
       - "7511-7513:7511-7513"
     environment:
-      - lb_backendMode=round-robin
+      - proxy_backend__mode=round-robin
+      - proxy_backend__host=0.0.0.0
+      - proxy_backend__socket=
 
   kuzzle1:
     image: kuzzleio/dev
@@ -21,6 +23,10 @@ services:
     command: sh -c 'chmod 755 /scripts/run-dev.sh && /scripts/run-dev.sh'
     networks:
       - kuzzle-cluster
+    depends_on:
+      - redis
+      - elasticsearch
+      - loadbalancer
     volumes:
       - "../../kuzzle:/var/app"
       - "../../kuzzle-load-balancer:/var/kuzzle-load-balancer"
@@ -47,6 +53,10 @@ services:
     command: sh -c 'chmod 755 /scripts/run-dev.sh && /scripts/run-dev.sh'
     networks:
       - kuzzle-cluster
+    depends_on:
+      - redis
+      - elasticsearch
+      - loadbalancer
     volumes:
       - "../../kuzzle:/var/app"
       - "../../kuzzle-load-balancer:/var/kuzzle-load-balancer"
@@ -71,6 +81,10 @@ services:
     command: sh -c 'chmod 755 /scripts/run-dev.sh && /scripts/run-dev.sh'
     networks:
       - kuzzle-cluster
+    depends_on:
+      - redis
+      - elasticsearch
+      - loadbalancer
     volumes:
       - "../../kuzzle:/var/app"
       - "../../kuzzle-load-balancer:/var/kuzzle-load-balancer"
@@ -90,12 +104,12 @@ services:
       - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
 
   redis:
-    image: redis:3.2-alpine
+    image: redis:3.2
     networks:
       - kuzzle-cluster
 
   elasticsearch:
-    image: kuzzleio/elasticsearch:2.3.4
+    image: elasticsearch:5.0
     networks:
       - kuzzle-cluster
 

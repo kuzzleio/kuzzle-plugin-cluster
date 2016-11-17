@@ -22,8 +22,7 @@ if ! (echo ${E} | grep -E '"status":"(yellow|green)"' > /dev/null); then
     exit 1
 fi
 
-echo "" > node_modules/pm2/lib/keymetrics
 echo "[$(date --rfc-3339 seconds)][cluster] - Starting Kuzzle tests..."
 
-node bin/kuzzle install
+pm2 start --silent /config/pm2.json
 npm test

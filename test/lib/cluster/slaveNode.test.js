@@ -18,7 +18,7 @@ describe('lib/cluster/slaveNode', () => {
         kuzzle: {
           services: { list: { broker: {} } },
           hotelClerk: { rooms: 'rooms', customers: 'customers' },
-          dsl: { filters: { filters: 'filters' } },
+          dsl: {storage: {}},
           indexCache: { indexes: 'indexes' }
         }
       }
@@ -162,18 +162,33 @@ describe('lib/cluster/slaveNode', () => {
       cb.call(node, {
         action: 'snapshot',
         data: {
-          hc: {rooms: 'urooms', customers: 'ucustomers'},
-          ft: {t: 'ufiltersTree', f: 'ufilters'},
-          ic: 'uindexCache'
+          hc: {
+            r: 'rooms',
+            c: 'customers'
+          },
+          fs: {
+            i: 'filtersIndex',
+            f: 'filters',
+            s: 'subfilters',
+            c: 'conditions',
+            fp: 'foPairs',
+            t: 'testTables'
+          },
+          ic: 'indexes'
         }
       });
 
-      should(node.kuzzle.hotelClerk.rooms).be.exactly('urooms');
-      should(node.kuzzle.hotelClerk.customers).be.exactly('ucustomers');
-      should(node.kuzzle.dsl.filters.filtersTree).be.exactly('ufiltersTree');
-      should(node.kuzzle.dsl.filters.filters).be.exactly('ufilters');
-      should(node.kuzzle.indexCache.indexes).be.exactly('uindexCache');
+      should(node.kuzzle.hotelClerk.rooms).be.exactly('rooms');
+      should(node.kuzzle.hotelClerk.customers).be.exactly('customers');
 
+      should(node.kuzzle.dsl.storage.filtersIndex).be.exactly('filtersIndex');
+      should(node.kuzzle.dsl.storage.filters).be.exactly('filters');
+      should(node.kuzzle.dsl.storage.subfilters).be.exactly('subfilters');
+      should(node.kuzzle.dsl.storage.conditions).be.exactly('conditions');
+      should(node.kuzzle.dsl.storage.foPairs).be.exactly('foPairs');
+      should(node.kuzzle.dsl.storage.testTables).be.exactly('testTables');
+
+      should(node.kuzzle.indexCache.indexes).be.exactly('indexes');
 
     });
 
