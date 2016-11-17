@@ -38,14 +38,17 @@ describe('lib/cluster/node', () => {
             removeRoomForCustomer: sandbox.spy()
           },
           pluginsManager: {
-            trigger: sinon.spy()
+            trigger: sandbox.spy()
           },
           services: {
             list: {
               storageEngine: {
-                setAutoRefresh: sinon.spy()
+                setAutoRefresh: sandbox.spy()
               }
             }
+          },
+          validation: {
+            curateSpecification: sandbox.spy()
           }
         }
       }
@@ -164,6 +167,12 @@ describe('lib/cluster/node', () => {
 
       should(context.accessors.kuzzle.dsl.storage.store).be.calledOnce();
       should(context.accessors.kuzzle.dsl.storage.store).be.calledWithMatch('index', 'collection', {some: 'filters'});
+    });
+
+    it('should trigger an update specifications when an `vu` key is given', () => {
+      node.merge({vu: {}});
+
+      should(context.accessors.kuzzle.validation.curateSpecification).be.calledOnce();
     });
   });
 

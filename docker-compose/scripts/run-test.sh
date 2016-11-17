@@ -15,7 +15,7 @@ done
 # create a tmp index just to force the shards to init
 curl -XPUT -s -o /dev/null "http://$ELASTIC_HOST:$ELASTIC_PORT/%25___tmp"
 echo "[$(date --rfc-3339 seconds)][cluster] - Elasticsearch is up. Waiting for shards to be active (can take a while)"
-E=$(curl -s "http://${ELASTIC_HOST:$ELASTIC_PORT}/_cluster/health?wait_for_status=yellow&wait_for_active_shards=1&timeout=60s")
+E=$(curl -s "http://$ELASTIC_HOST:$ELASTIC_PORT/_cluster/health?wait_for_status=yellow&wait_for_active_shards=1&timeout=60s")
 curl -XDELETE -s -o /dev/null "http://$ELASTIC_HOST:$ELASTIC_PORT/%25___tmp"
 
 if ! (echo ${E} | grep -E '"status":"(yellow|green)"' > /dev/null); then
