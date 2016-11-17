@@ -1,7 +1,8 @@
 #!/bin/sh
 
 set -eu
-
+export DOCKER_CLIENT_TIMEOUT=120
+export COMPOSE_HTTP_TIMEOUT=120
 ES=0
 
 # kill containers for debug usage
