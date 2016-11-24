@@ -24,7 +24,7 @@ describe('lib/cluster/masterNode', () => {
         kuzzle: {
           services: { list: { broker: {} } },
           hotelClerk: { rooms: 'rooms', customers: 'customers' },
-          dsl: {storage: {}},
+          dsl: {storage: { filters: { fId: {index: 'index', collection: 'collection', filters: 'filters'}}}},
           indexCache: { indexes: 'indexes' }
         }
       }},
@@ -136,14 +136,7 @@ describe('lib/cluster/masterNode', () => {
             r: context.accessors.kuzzle.hotelClerk.rooms,
             c: context.accessors.kuzzle.hotelClerk.customers
           },
-          fs: {
-            i: context.accessors.kuzzle.dsl.storage.filtersIndex,
-            f: context.accessors.kuzzle.dsl.storage.filters,
-            s: context.accessors.kuzzle.dsl.storage.subfilters,
-            c: context.accessors.kuzzle.dsl.storage.conditions,
-            fp: context.accessors.kuzzle.dsl.storage.foPairs,
-            t: context.accessors.kuzzle.dsl.storage.testTables
-          },
+          fs: [{idx: 'index', coll: 'collection', f: 'filters'}],
           ic: context.accessors.kuzzle.indexCache.indexes
         }
       });

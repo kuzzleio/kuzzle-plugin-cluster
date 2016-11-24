@@ -18,7 +18,7 @@ describe('lib/cluster/slaveNode', () => {
         kuzzle: {
           services: { list: { broker: {} } },
           hotelClerk: { rooms: 'rooms', customers: 'customers' },
-          dsl: {storage: {}},
+          dsl: {storage: { store: sandbox.stub() }},
           indexCache: { indexes: 'indexes' }
         }
       }
@@ -166,14 +166,7 @@ describe('lib/cluster/slaveNode', () => {
             r: 'rooms',
             c: 'customers'
           },
-          fs: {
-            i: 'filtersIndex',
-            f: 'filters',
-            s: 'subfilters',
-            c: 'conditions',
-            fp: 'foPairs',
-            t: 'testTables'
-          },
+          fs: [{idx: 'idx', coll: 'coll', f: 'filters'}],
           ic: 'indexes'
         }
       });
@@ -181,12 +174,7 @@ describe('lib/cluster/slaveNode', () => {
       should(node.kuzzle.hotelClerk.rooms).be.exactly('rooms');
       should(node.kuzzle.hotelClerk.customers).be.exactly('customers');
 
-      should(node.kuzzle.dsl.storage.filtersIndex).be.exactly('filtersIndex');
-      should(node.kuzzle.dsl.storage.filters).be.exactly('filters');
-      should(node.kuzzle.dsl.storage.subfilters).be.exactly('subfilters');
-      should(node.kuzzle.dsl.storage.conditions).be.exactly('conditions');
-      should(node.kuzzle.dsl.storage.foPairs).be.exactly('foPairs');
-      should(node.kuzzle.dsl.storage.testTables).be.exactly('testTables');
+      should(node.kuzzle.dsl.storage.store.calledWith('idx', 'coll', 'filters')).be.true();
 
       should(node.kuzzle.indexCache.indexes).be.exactly('indexes');
 
