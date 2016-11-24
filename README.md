@@ -3,6 +3,10 @@
 
 This plugin adds a cluster mode to Kuzzle.
 
+## Compatiblity
+
+The 1.x version of this plugin are compatible with Kuzzle v1.0.0-RC.8 and upper.
+
 ## How to set it up
 
 At the time this document is written, this plugin is working using the following dependencies:
