@@ -40,14 +40,15 @@ fi
     . ./my.env
 
     # lb
-    export LB_IMAGE=${LB_IMAGE:-kuzzleio/proxy-dev}
+    export LB_IMAGE=${LB_IMAGE:-kuzzleio/dev}
     export LB_VOLUME="[]"
     if [ "$LB_PATH" != "" ]; then
-        export LB_VOLUME="- \"$(readlink -f ${LB_PATH}):/var/app\""
+        export LB_VOLUME="- \"$(readlink -f ${LB_PATH})/docker-compose/config/pm2-dev.json:/config/pm2.json\"
+      - \"$(readlink -f ${LB_PATH}):/var/app\""
     fi
 
     # kuzzle
-    export KUZ_IMAGE=${KUZ_IMAGE:-kuzzleio/dev:alpine}
+    export KUZ_IMAGE=${KUZ_IMAGE:-kuzzleio/dev}
     export KUZ_VOLUME=""
     if [ "$KUZ_PATH" != "" ]; then
         export KUZ_VOLUME="- \"$(readlink -f ${KUZ_PATH}):/var/app\""
@@ -56,11 +57,6 @@ fi
 
     envsubst < docker-compose.yml.tpl > docker-compose.yml
 )
-docker-compose -f "$COMPOSE_FILE" stop
+docker-compose -f "$COMPOSE_FILE" kill
 docker-compose -f "$COMPOSE_FILE" rm -fva 2> /dev/null
-docker-compose -f "$COMPOSE_FILE" up -d
-docker-compose -f "$COMPOSE_FILE" logs loadbalancer kuzzle1 kuzzle2 kuzzle3
-
-
-
-
+docker-compose -f "$COMPOSE_FILE" up
