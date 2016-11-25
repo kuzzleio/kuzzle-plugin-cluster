@@ -1,8 +1,11 @@
-![logo](http://kuzzle.io/images/logoS.png)
 
 # Cluster mode plugin
 
 This plugin adds a cluster mode to Kuzzle.
+
+## Compatiblity
+
+The 1.x version of this plugin are compatible with Kuzzle v1.0.0-RC.8 and upper.
 
 ## How to set it up
 
