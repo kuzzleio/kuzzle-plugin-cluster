@@ -202,11 +202,13 @@ describe('lib/index', () => {
       };
 
       kuzzleCluster.roomsRemoved({
-        index: 'index',
-        collection: 'collection',
-        data: {
-          body: {
-            rooms: 'rooms'
+        requestObject: {
+          index: 'index',
+          collection: 'collection',
+          data: {
+            body: {
+              rooms: 'rooms'
+            }
           }
         }
       });
@@ -328,9 +330,9 @@ describe('lib/index', () => {
         broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.autoRefreshUpdated({data: {body: {}}});
-      kuzzleCluster.autoRefreshUpdated({data: {body: {autoRefresh: 'invalid'}}});
-      kuzzleCluster.autoRefreshUpdated({data: {body: {autoRefresh: 42}}});
+      kuzzleCluster.autoRefreshUpdated({requestObject: {data: {body: {}}}});
+      kuzzleCluster.autoRefreshUpdated({requestObject: {data: {body: {autoRefresh: 'invalid'}}}});
+      kuzzleCluster.autoRefreshUpdated({requestObject: {data: {body: {autoRefresh: 42}}}});
 
       should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
     });
@@ -341,7 +343,7 @@ describe('lib/index', () => {
         broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.autoRefreshUpdated({index: 'index', data: {body: {autoRefresh: true}}});
+      kuzzleCluster.autoRefreshUpdated({requestObject: {index: 'index', data: {body: {autoRefresh: true}}}});
       should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
       should(kuzzleCluster.node.broker.broadcast).be.calledWithExactly('cluster:update', {
         ar: {i: 'index', v: true}
