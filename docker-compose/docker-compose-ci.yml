@@ -31,11 +31,11 @@ services:
       - loadbalancer
     volumes:
       - "../../kuzzle:/var/app"
+      - "./tmp/kuzzle1/node_modules:/var/app/node_modules"
       - "../../kuzzle-load-balancer:/var/kuzzle-load-balancer"
       - "..:/var/kuzzle-plugin-cluster"
       - "./scripts:/scripts"
       - "./config/pm2-dev.json:/config/pm2.json"
-      - "./tmp/kuzzle1/node_modules:/var/app/node_modules"
       - "./tmp/kuzzle1/plugin-cluster/node_modules:/var/kuzzle-plugin-cluster/node_modules"
     ports:
       - "8080:8080"

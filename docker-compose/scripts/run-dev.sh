@@ -7,13 +7,13 @@ ELASTIC_PORT=${kuzzle_services__db__port:-9200}
 
 echo "[$(date --rfc-3339 seconds)][cluster] - Installing plugin cluster dependencies..."
 cd /var/kuzzle-plugin-cluster
-rm -rf /var/kuzzle-plugin-cluster/node_modules/*
-npm install --production
+#rm -rf /var/kuzzle-plugin-cluster/node_modules/*
+#npm install --production
 
 echo "[$(date --rfc-3339 seconds)][cluster] - Installing kuzzle dependencies..."
 cd /var/app
-rm -rf /var/app/node_modules/*
-npm install
+#rm -rf /var/app/node_modules/*
+#npm install
 
 echo "[$(date --rfc-3339 seconds)][cluster] - Waiting for elasticsearch to be available"
 while ! curl -f -s -o /dev/null "http://$ELASTIC_HOST:$ELASTIC_PORT"

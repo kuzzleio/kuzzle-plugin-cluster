@@ -16,8 +16,8 @@ services:
     environment:
       - proxy_backend__mode=round-robin
       - proxy_backend__host=0.0.0.0
-      - proxy_backend__socket=
-
+      - proxy_backend__socket=false
+      - proxy_backend__port=7331
   kuzzle1:
     image: ${KUZ_IMAGE}
     container_name: kuzzle1
@@ -44,6 +44,9 @@ services:
       - kuzzle_services__internalCache__node__host=redis
       - kuzzle_services__memoryStorage__node__host=redis
       - kuzzle_services__proxyBroker__host=loadbalancer
+      - kuzzle_services__internalBroker__socket=false
+      - kuzzle_services__internalBroker__host=0.0.0.0
+      - kuzzle_services__internalBroker__port=7911
       - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
       - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
@@ -72,6 +75,9 @@ services:
       - kuzzle_services__internalCache__node__host=redis
       - kuzzle_services__memoryStorage__node__host=redis
       - kuzzle_services__proxyBroker__host=loadbalancer
+      - kuzzle_services__internalBroker__socket=false
+      - kuzzle_services__internalBroker__host=0.0.0.0
+      - kuzzle_services__internalBroker__port=7911
       - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
       - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
@@ -100,6 +106,9 @@ services:
       - kuzzle_services__internalCache__node__host=redis
       - kuzzle_services__memoryStorage__node__host=redis
       - kuzzle_services__proxyBroker__host=loadbalancer
+      - kuzzle_services__internalBroker__socket=false
+      - kuzzle_services__internalBroker__host=0.0.0.0
+      - kuzzle_services__internalBroker__port=7911
       - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
       - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
