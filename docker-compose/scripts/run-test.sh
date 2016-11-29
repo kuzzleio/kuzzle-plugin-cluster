@@ -9,8 +9,9 @@ echo "[$(date --rfc-3339 seconds)][cluster] - Waiting for elasticsearch to be av
 while ! curl -f -s -o /dev/null "http://$ELASTIC_HOST:$ELASTIC_PORT"
 do
     echo "[$(date --rfc-3339 seconds)][cluster] - Still trying to connect to http://$ELASTIC_HOST:$ELASTIC_PORT"
-    sleep 1
+    sleep 5
 done
+
 # create a tmp index just to force the shards to init
 curl -XPUT -s -o /dev/null "http://$ELASTIC_HOST:$ELASTIC_PORT/%25___tmp"
 echo "[$(date --rfc-3339 seconds)][cluster] - Elasticsearch is up. Waiting for shards to be active (can take a while)"
@@ -22,7 +23,14 @@ if ! (echo ${E} | grep -E '"status":"(yellow|green)"' > /dev/null); then
     exit 1
 fi
 
-echo "[$(date --rfc-3339 seconds)][cluster] - Starting Kuzzle tests..."
+echo "[$(date --rfc-3339 seconds)][cluster] - Waiting for the whole cluster to be up and running"
 
-pm2 start --silent /config/pm2.json
-npm test
+while ! curl -m 1 --silent http://api:7511/api/1.0/_plugin/kuzzle-plugin-cluster/status 2>&1 | grep -e \"nodesCount\":3 > /dev/null
+do
+    echo "[$(date --rfc-3339 seconds)][cluster] - still waiting for the whole cluster to be up and running"
+    sleep 5
+done
+
+echo "[$(date --rfc-3339 seconds)][cluster] - The cluster is up. Start the tests."
+
+npm run functional-testing
