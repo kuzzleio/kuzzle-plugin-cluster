@@ -33,4 +33,4 @@ done
 
 echo "[$(date --rfc-3339 seconds)][cluster] - The cluster is up. Start the tests."
 
-npm run functionnal-testing
+npm run functional-testing
