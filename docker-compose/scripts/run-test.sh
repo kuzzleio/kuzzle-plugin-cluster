@@ -9,7 +9,7 @@ echo "[$(date --rfc-3339 seconds)][cluster] - Waiting for elasticsearch to be av
 while ! curl -f -s -o /dev/null "http://$ELASTIC_HOST:$ELASTIC_PORT"
 do
     echo "[$(date --rfc-3339 seconds)][cluster] - Still trying to connect to http://$ELASTIC_HOST:$ELASTIC_PORT"
-    sleep 1
+    sleep 5
 done
 
 # create a tmp index just to force the shards to init
@@ -33,4 +33,4 @@ done
 
 echo "[$(date --rfc-3339 seconds)][cluster] - The cluster is up. Start the tests."
 
-npm test
+npm run functionnal-testing
