@@ -4,7 +4,8 @@ var
   sinon = require('sinon'),
   Node = rewire('../../../lib/cluster/node'),
   sandbox = sinon.sandbox.create(),
-  RequestObject = require('kuzzle-common-objects').Models.requestObject;
+  Request = require('kuzzle-common-objects').Request,
+  RequestContext = require('kuzzle-common-objects').models.RequestContext;
 
 describe('lib/cluster/node', () => {
   var
@@ -185,7 +186,7 @@ describe('lib/cluster/node', () => {
         c: 'collection',
         ch: ['channelId', 'states'],
         r: 'roomId',
-        cx: {id: 'myconnection'},
+        cx: {i: 'myconnection', p: 'foo'},
         m: {meta: 'data'}
       });
 
@@ -200,7 +201,10 @@ describe('lib/cluster/node', () => {
       });
 
       should(node.kuzzle.hotelClerk.addRoomForCustomer).be.calledOnce();
-      should(node.kuzzle.hotelClerk.addRoomForCustomer).be.calledWith({id: 'myconnection'}, 'roomId', {meta: 'data'});
+      should(node.kuzzle.hotelClerk.addRoomForCustomer.firstCall.args[0]).be.instanceOf(Request);
+      should(node.kuzzle.hotelClerk.addRoomForCustomer.firstCall.args[0].context.connectionId).be.eql('myconnection');
+      should(node.kuzzle.hotelClerk.addRoomForCustomer.firstCall.args[1]).be.eql('roomId');
+      should(node.kuzzle.hotelClerk.addRoomForCustomer.firstCall.args[2]).match({meta: 'data'});
     });
 
   });
@@ -210,12 +214,15 @@ describe('lib/cluster/node', () => {
 
     it('should remove the room entry', () => {
       mergeDelRoom(node.kuzzle.hotelClerk, {
-        c: {id: 'myconnection'},
+        c: {i: 'myconnection'},
         r: 'roomId'
       });
 
       should(node.kuzzle.hotelClerk.removeRoomForCustomer).be.calledOnce();
-      should(node.kuzzle.hotelClerk.removeRoomForCustomer).be.calledWith({id: 'myconnection'}, 'roomId', false);
+      should(node.kuzzle.hotelClerk.removeRoomForCustomer.firstCall.args[0]).be.instanceOf(RequestContext);
+      should(node.kuzzle.hotelClerk.removeRoomForCustomer.firstCall.args[0].connectionId).be.eql('myconnection');
+      should(node.kuzzle.hotelClerk.removeRoomForCustomer.firstCall.args[1]).be.eql('roomId');
+      should(node.kuzzle.hotelClerk.removeRoomForCustomer.firstCall.args[2]).be.false();
     });
   });
 
@@ -229,10 +236,10 @@ describe('lib/cluster/node', () => {
 
       should(node.kuzzle.hotelClerk.removeRooms).be.calledOnce();
       response = node.kuzzle.hotelClerk.removeRooms.firstCall.args[0];
-      should(response).be.an.instanceOf(RequestObject);
-      should(response.index).be.exactly('index');
-      should(response.collection).be.exactly('collection');
-      should(response.data.body.rooms).be.eql(['room1', 'room2']);
+      should(response).be.an.instanceOf(Request);
+      should(response.input.resource.index).be.exactly('index');
+      should(response.input.resource.collection).be.exactly('collection');
+      should(response.input.body.rooms).be.eql(['room1', 'room2']);
     });
   });
 
@@ -241,17 +248,18 @@ describe('lib/cluster/node', () => {
 
     it('should call kuzzle write engine with a valid requestObject', () => {
       var
-        requestObject;
+        request;
 
       updateAutoRefresh(node.kuzzle.services.list.storageEngine, 'index', 'value');
 
       should(node.kuzzle.services.list.storageEngine.setAutoRefresh).be.calledOnce();
-      requestObject = node.kuzzle.services.list.storageEngine.setAutoRefresh.firstCall.args[0];
+      request = node.kuzzle.services.list.storageEngine.setAutoRefresh.firstCall.args[0];
 
-      should(requestObject.index).be.exactly('index');
-      should(requestObject.controller).be.exactly('admin');
-      should(requestObject.action).be.exactly('setAutoRefresh');
-      should(requestObject.data.body.autoRefresh).be.exactly('value');
+      should(request).be.instanceOf(Request);
+      should(request.input.resource.index).be.exactly('index');
+      should(request.input.controller).be.exactly('admin');
+      should(request.input.action).be.exactly('setAutoRefresh');
+      should(request.input.body.autoRefresh).be.exactly('value');
     });
 
   });
