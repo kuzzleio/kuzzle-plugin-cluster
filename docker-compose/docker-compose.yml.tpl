@@ -24,10 +24,6 @@ services:
     command: sh -c 'chmod 755 /scripts/run-dev.sh && /scripts/run-dev.sh'
     networks:
       - kuzzle-cluster
-    depends_on:
-      - redis
-      - elasticsearch
-      - loadbalancer
     volumes:
       ${KUZ_VOLUME}
       ${KUZ_LB_VOLUME}
@@ -50,6 +46,7 @@ services:
       - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
       - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
+      - kuzzle_plugins__kuzzle-plugin-cluster__version=
 
   kuzzle2:
     image: ${KUZ_IMAGE}
@@ -57,10 +54,6 @@ services:
     command: sh -c 'chmod 755 /scripts/run-dev.sh && /scripts/run-dev.sh'
     networks:
       - kuzzle-cluster
-    depends_on:
-      - redis
-      - elasticsearch
-      - loadbalancer
     volumes:
       ${KUZ_VOLUME}
       ${KUZ_LB_VOLUME}
@@ -81,6 +74,7 @@ services:
       - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
       - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
+      - kuzzle_plugins__kuzzle-plugin-cluster__version=
 
   kuzzle3:
     image: ${KUZ_IMAGE}
@@ -88,10 +82,6 @@ services:
     command: sh -c 'chmod 755 /scripts/run-dev.sh && /scripts/run-dev.sh'
     networks:
       - kuzzle-cluster
-    depends_on:
-      - redis
-      - elasticsearch
-      - loadbalancer
     volumes:
       ${KUZ_VOLUME}
       ${KUZ_LB_VOLUME}
@@ -112,6 +102,7 @@ services:
       - kuzzle_plugins__kuzzle-plugin-cluster__path=/var/kuzzle-plugin-cluster
       - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
       - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
+      - kuzzle_plugins__kuzzle-plugin-cluster__version=
 
   redis:
     image: redis:3.2
