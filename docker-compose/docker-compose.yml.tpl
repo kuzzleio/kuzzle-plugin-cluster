@@ -47,6 +47,7 @@ services:
       - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
       - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
       - kuzzle_plugins__kuzzle-plugin-cluster__version=
+      - kuzzle_plugins__kuzzle-plugin-logger__config__threads=false
 
   kuzzle2:
     image: ${KUZ_IMAGE}
@@ -75,6 +76,7 @@ services:
       - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
       - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
       - kuzzle_plugins__kuzzle-plugin-cluster__version=
+      - kuzzle_plugins__kuzzle-plugin-logger__config__threads=false
 
   kuzzle3:
     image: ${KUZ_IMAGE}
@@ -103,6 +105,7 @@ services:
       - kuzzle_plugins__kuzzle-plugin-cluster__activated=true
       - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
       - kuzzle_plugins__kuzzle-plugin-cluster__version=
+      - kuzzle_plugins__kuzzle-plugin-logger__config__threads=false
 
   redis:
     image: redis:3.2
