@@ -105,7 +105,6 @@ describe('lib/cluster/node', () => {
       rewireRevert = Node.__set__({
         mergeAddRoom: sinon.spy(),
         mergeDelRoom: sinon.spy(),
-        mergeDelRooms: sinon.spy(),
         updateAutoRefresh: sinon.spy()
       });
     });
@@ -147,13 +146,6 @@ describe('lib/cluster/node', () => {
 
       should(Node.__get__('mergeDelRoom')).be.calledOnce();
       should(Node.__get__('mergeDelRoom')).be.calledWith(node.kuzzle.hotelClerk, {});
-    });
-
-    it('should call the mergeDelRooms function when an `hcDelMul` key is given', () => {
-      node.merge({hcDelMul: {}});
-
-      should(Node.__get__('mergeDelRooms')).be.calledOnce();
-      should(Node.__get__('mergeDelRooms')).be.calledWith(node.kuzzle.hotelClerk, {});
     });
 
     it('should call the updateAutoRefresh function when an `ar` key is given', () => {
@@ -223,23 +215,6 @@ describe('lib/cluster/node', () => {
       should(node.kuzzle.hotelClerk.removeRoomForCustomer.firstCall.args[0].connectionId).be.eql('myconnection');
       should(node.kuzzle.hotelClerk.removeRoomForCustomer.firstCall.args[1]).be.eql('roomId');
       should(node.kuzzle.hotelClerk.removeRoomForCustomer.firstCall.args[2]).be.false();
-    });
-  });
-
-  describe('#mergeDelRooms', () => {
-    var mergeDelRooms = Node.__get__('mergeDelRooms');
-
-    it('should call hotelClerk::removeRooms', () => {
-      var response;
-
-      mergeDelRooms(node.kuzzle.hotelClerk, {i: 'index', c: 'collection', r: ['room1', 'room2']});
-
-      should(node.kuzzle.hotelClerk.removeRooms).be.calledOnce();
-      response = node.kuzzle.hotelClerk.removeRooms.firstCall.args[0];
-      should(response).be.an.instanceOf(Request);
-      should(response.input.resource.index).be.exactly('index');
-      should(response.input.resource.collection).be.exactly('collection');
-      should(response.input.body.rooms).be.eql(['room1', 'room2']);
     });
   });
 

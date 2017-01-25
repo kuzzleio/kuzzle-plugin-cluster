@@ -29,6 +29,20 @@ vim docker-compose/my.env
 
 You should now have a full Kuzzle clustered stack running 3 Kuzzle front nodes (and 3 servers).
 
+### Privileged context
+
+This plugin needs privileged context to work. This context is granted by Kuzzle via the global configuration. Add the following to your configuration
+
+```javascript
+plugins: {
+    'kuzzle-plugin-cluster': {
+        privileged: true
+    }
+}
+```
+
+For more information on how to configure Kuzzle, [please refer to the Guide](http://docs.kuzzle.io/guide/#configuring-kuzzle).
+
 ## Known bugs
 
 * MQ-based functional tests fail

@@ -23,13 +23,6 @@
     "url": "https://github.com/kuzzleio/kuzzle-plugin-cluster/issues"
   },
   "homepage": "https://github.com/kuzzleio/kuzzle-plugin-cluster#readme",
-  "pluginInfo": {
-    "defaultConfig": {
-      "privileged": true,
-      "binding": "[eth0:ipv4]:7911",
-      "retryInterval": 2000
-    }
-  },
   "dependencies": {
     "bluebird": "^3.4.1",
     "kuzzle-common-objects": "^2.1.0",

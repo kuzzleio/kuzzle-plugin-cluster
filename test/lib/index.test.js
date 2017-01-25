@@ -65,11 +65,7 @@ describe('lib/index', () => {
       })(() => {
         kuzzleCluster.init({some: 'value', binding: 'binding'}, context, true);
 
-        should(kuzzleCluster.config).be.eql({
-          binding: 'newBinding',
-          some: 'value',
-          foo: 'bar'
-        });
+        should(kuzzleCluster.config).have.properties(['binding', 'some', 'foo']);
 
         should(KuzzleCluster.__get__('resolveBinding')).be.calledOnce();
         should(KuzzleCluster.__get__('resolveBinding')).be.calledWith('binding');
@@ -183,41 +179,6 @@ describe('lib/index', () => {
       });
     });
 
-  });
-
-  describe('#roomsRemoved', () => {
-
-    it('should do nothing if not ready', () => {
-      kuzzleCluster.node = {
-        isReady: false,
-        broker: {broadcast: sinon.spy()}
-      };
-
-      kuzzleCluster.roomsRemoved({});
-      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
-    });
-
-    it('should broadcast a multi del diff', () => {
-      kuzzleCluster.node = {
-        isReady: true,
-        broker: {broadcast: sinon.spy()}
-      };
-
-      kuzzleCluster.roomsRemoved(new Request({
-        index: 'index',
-        collection: 'collection',
-        body: {rooms: 'rooms'}
-      }));
-
-      should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', {
-        hcDelMul: {
-          i: 'index',
-          c: 'collection',
-          r: 'rooms'
-        }
-      });
-    });
   });
 
   describe('#subscriptionAdded', () => {
