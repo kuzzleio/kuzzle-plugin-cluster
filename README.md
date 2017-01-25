@@ -31,7 +31,7 @@ You should now have a full Kuzzle clustered stack running 3 Kuzzle front nodes (
 
 ### Privileged context
 
-This plugin needs privileged context to work. This context is granted by uzzle via the global configuration. Add the following to your configuration
+This plugin needs privileged context to work. This context is granted by Kuzzle via the global configuration. Add the following to your configuration
 
 ```javascript
 plugins: {
