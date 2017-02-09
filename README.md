@@ -5,20 +5,20 @@ This plugin adds a cluster mode to Kuzzle.
 
 ## Compatiblity
 
-The 1.x version of this plugin are compatible with Kuzzle v1.0.0-RC.8 and upper.
+The 1.1.x version of this plugin are compatible with Kuzzle v1.0.0-RC.9 and upper.
 
 ## How to set it up
 
 At the time this document is written, this plugin is working using the following dependencies:
 
-* Kuzzle: >= [1.0.0-RC4 release](https://github.com/kuzzleio/kuzzle/tree/1.0.0-RC4)
-* LB: branch [kuz-579-cluster-quarantine](https://github.com/kuzzleio/kuzzle-load-balancer/tree/kuz-579-cluster-quarantine)
+* Kuzzle: >= [1.0.0-RC9 release](https://github.com/kuzzleio/kuzzle/tree/1.0.0-RC9)
+* LB => [1.0.0-RC9 release](https://github.com/kuzzleio/kuzzle-load-balancer/tree/1.0.0-RC9)
 
 ```bash
 cd <dir>
-git pull -b 1.0.0-RC4 git@github.com:kuzzleio/kuzzle.git
-git pull -b kuz-579-cluster-quarantine git@github.com:kuzzleio/kuzzle-load-balancer.git
-git pull git@github.com:kuzzleio/kuzzle-plugin-cluster.git
+git clone -b 1.0.0-RC9 git@github.com:kuzzleio/kuzzle.git
+git clone -b 1.0.0-RC9 git@github.com:kuzzleio/kuzzle-load-balancer.git
+git clone git@github.com:kuzzleio/kuzzle-plugin-cluster.git
 
 cd kuzzle-plugin-cluster
 cp docker-compose/my.env.sample docker-compose/my.env
