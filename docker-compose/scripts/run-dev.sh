@@ -5,13 +5,22 @@ set -eu
 ELASTIC_HOST=${kuzzle_services__db__host:-elasticsearch}
 ELASTIC_PORT=${kuzzle_services__db__port:-9200}
 
+echo "[$(date --rfc-3339 seconds)][cluster] - Installing plugin cluster dependencies..."
+cd /var/kuzzle-plugin-cluster
+rm -rf /var/kuzzle-plugin-cluster/node_modules/*
+npm install --production
+
+echo "[$(date --rfc-3339 seconds)][cluster] - Installing kuzzle dependencies..."
+cd /var/app
+rm -rf /var/app/node_modules/*
+npm install
+
 echo "[$(date --rfc-3339 seconds)][cluster] - Waiting for elasticsearch to be available"
 while ! curl -f -s -o /dev/null "http://$ELASTIC_HOST:$ELASTIC_PORT"
 do
     echo "[$(date --rfc-3339 seconds)][cluster] - Still trying to connect to http://$ELASTIC_HOST:$ELASTIC_PORT"
-    sleep 5
+    sleep 1
 done
-
 # create a tmp index just to force the shards to init
 curl -XPUT -s -o /dev/null "http://$ELASTIC_HOST:$ELASTIC_PORT/%25___tmp"
 echo "[$(date --rfc-3339 seconds)][cluster] - Elasticsearch is up. Waiting for shards to be active (can take a while)"
@@ -23,14 +32,9 @@ if ! (echo ${E} | grep -E '"status":"(yellow|green)"' > /dev/null); then
     exit 1
 fi
 
-echo "[$(date --rfc-3339 seconds)][cluster] - Waiting for the whole cluster to be up and running"
+echo "[$(date --rfc-3339 seconds)][cluster] - Starting Kuzzle..."
 
-while ! curl -m 1 --silent http://api:7511/api/1.0/_plugin/kuzzle-plugin-cluster/status 2>&1 | grep -e \"nodesCount\":3 > /dev/null
-do
-    echo "[$(date --rfc-3339 seconds)][cluster] - still waiting for the whole cluster to be up and running"
-    sleep 5
-done
-
-echo "[$(date --rfc-3339 seconds)][cluster] - The cluster is up. Start the tests."
-
-npm run functional-testing
+pm2 start --silent /config/pm2.json
+nohup node-inspector --web-port=8080 --debug-port=7000 > /dev/null 2>&1&
+pm2 sendSignal -s SIGUSR1 KuzzleServer
+pm2 logs --lines 0 --raw

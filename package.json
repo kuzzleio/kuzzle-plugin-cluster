@@ -1,6 +1,6 @@
 {
   "name": "kuzzle-plugin-cluster",
-  "version": "0.1.2",
+  "version": "1.1.0",
   "description": "Enterprise only - enables Kuzzle cluster mode",
   "main": "./lib/index.js",
   "scripts": {
@@ -23,16 +23,9 @@
     "url": "https://github.com/kuzzleio/kuzzle-plugin-cluster/issues"
   },
   "homepage": "https://github.com/kuzzleio/kuzzle-plugin-cluster#readme",
-  "pluginInfo": {
-    "defaultConfig": {
-      "privileged": true,
-      "binding": "[eth0:ipv4]:7911",
-      "retryInterval": 2000
-    }
-  },
   "dependencies": {
     "bluebird": "^3.4.1",
-    "kuzzle-common-objects": "^1.0.2",
+    "kuzzle-common-objects": "^2.1.0",
     "lodash": "^4.13.1"
   },
   "devDependencies": {
