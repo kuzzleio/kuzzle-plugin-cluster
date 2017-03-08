@@ -24,7 +24,8 @@ cd kuzzle-plugin-cluster
 cp docker-compose/my.env.sample docker-compose/my.env
 vim docker-compose/my.env
 
-./run-debug.sh
+./run-npm-install.sh
+./run.sh
 ```
 
 You should now have a full Kuzzle clustered stack running 3 Kuzzle front nodes (and 3 servers).

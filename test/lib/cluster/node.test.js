@@ -56,7 +56,11 @@ describe('lib/cluster/node', () => {
     };
     node = new Node(clusterHandler, context, options);
 
-    node.broker = { listen: sandbox.spy(), close: sandbox.spy() };
+    node.broker = {
+      close: sandbox.spy(),
+      listen: sandbox.spy(),
+      unsubscribe: sinon.spy()
+    };
   });
 
   afterEach(() => {
@@ -86,10 +90,10 @@ describe('lib/cluster/node', () => {
 
   });
 
-  describe('#destroy', () => {
+  describe('#detach', () => {
 
     it('should do its job', () => {
-      node.destroy();
+      node.detach();
 
       should(node.broker.reconnect).be.false();
       should(node.broker.close).be.calledOnce();
@@ -170,7 +174,7 @@ describe('lib/cluster/node', () => {
   });
 
   describe('#mergeAddRoom', () => {
-    var mergeAddRoom = Node.__get__('mergeAddRoom');
+    var mergeAddRoom = Node.__get__('Node.prototype.mergeAddRoom');
 
     it('should update the hotelclerk', () => {
       mergeAddRoom(node.kuzzle.hotelClerk, {
@@ -202,7 +206,7 @@ describe('lib/cluster/node', () => {
   });
 
   describe('#mergeDelRoom', () => {
-    var mergeDelRoom = Node.__get__('mergeDelRoom');
+    var mergeDelRoom = Node.__get__('Node.prototype.mergeDelRoom');
 
     it('should remove the room entry', () => {
       mergeDelRoom(node.kuzzle.hotelClerk, {
@@ -219,7 +223,7 @@ describe('lib/cluster/node', () => {
   });
 
   describe('#updateAutoRefresh', () => {
-    var updateAutoRefresh = Node.__get__('updateAutoRefresh');
+    var updateAutoRefresh = Node.__get__('Node.prototype.updateAutoRefresh');
 
     it('should call kuzzle write engine with a valid requestObject', () => {
       var

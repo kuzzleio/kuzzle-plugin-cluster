@@ -4,8 +4,7 @@ var
   sinon = require('sinon'),
   sandbox = sinon.sandbox.create(),
   MasterNode = rewire('../../../lib/cluster/masterNode'),
-  Node = require('../../../lib/cluster/node'),
-  Slave = sinon.spy();
+  Node = require('../../../lib/cluster/node');
 
 describe('lib/cluster/masterNode', () => {
   var
@@ -65,7 +64,7 @@ describe('lib/cluster/masterNode', () => {
       revert;
 
     before(() => {
-      revert = MasterNode.__set__('attachEvents', spy);
+      revert = MasterNode.__set__('MasterNode.prototype.attachEvents', spy);
       node = new MasterNode(clusterHandler, context, options);
     });
 
@@ -84,7 +83,7 @@ describe('lib/cluster/masterNode', () => {
 
   describe('#attachEvents', () => {
     var
-      attachEvents = MasterNode.__get__('attachEvents'),
+      attachEvents = MasterNode.__get__('MasterNode.prototype.attachEvents'),
       cb,
       node = {
         addDiffListener: sinon.spy(),
@@ -101,6 +100,7 @@ describe('lib/cluster/masterNode', () => {
           slaves: {},
           master: clusterHandler
         },
+        context: 'context',
         kuzzle: context.accessors.kuzzle,
         slaves: {}
       },
@@ -108,8 +108,6 @@ describe('lib/cluster/masterNode', () => {
 
     before(() => {
       revert = MasterNode.__set__({
-        _context: 'context',
-        Slave
       });
     });
 

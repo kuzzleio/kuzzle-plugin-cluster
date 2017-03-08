@@ -98,7 +98,7 @@ describe('lib/cluster/slaveNode', () => {
 
   describe('#attachEvents', () => {
     var
-      attachEvents = SlaveNode.__get__('attachEvents'),
+      attachEvents = SlaveNode.__get__('SlaveNode.prototype.attachEvents'),
       cb,
       joinSpy,
       node = {
