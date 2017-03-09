@@ -141,8 +141,6 @@ describe('lib/cluster/masterNode', () => {
       should(node.clusterStatus.nodesCount)
         .be.eql(1);
 
-
-
     });
 
   });
