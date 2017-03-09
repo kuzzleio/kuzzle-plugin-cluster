@@ -3,5 +3,5 @@
 /coverage
 /docker-compose/my.env
 /docker-compose/docker-compose.yml
-/docker-compose/more.yml
+/docker-compose/npm-install.yml
 /docker-compose/tmp
