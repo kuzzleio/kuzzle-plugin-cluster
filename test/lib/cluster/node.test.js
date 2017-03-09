@@ -1,20 +1,19 @@
-var
+const
   rewire = require('rewire'),
   should = require('should'),
   sinon = require('sinon'),
   Node = rewire('../../../lib/cluster/node'),
-  sandbox = sinon.sandbox.create(),
   Request = require('kuzzle-common-objects').Request,
   RequestContext = require('kuzzle-common-objects').models.RequestContext;
 
 describe('lib/cluster/node', () => {
-  var
+  let
     clusterHandler,
     context,
     options = {foo: 'bar'},
     node;
 
-  before(() => {
+  beforeEach(() => {
     clusterHandler = {
       uuid: 'uuid'
     };
@@ -22,34 +21,34 @@ describe('lib/cluster/node', () => {
       accessors: {
         kuzzle: {
           indexCache: {
-            add: sandbox.spy(),
-            remove: sandbox.spy(),
-            reset: sandbox.spy()
+            add: sinon.spy(),
+            remove: sinon.spy(),
+            reset: sinon.spy()
           },
           dsl: {
             storage: {
-              store: sandbox.spy()
+              store: sinon.spy()
             }
           },
           hotelClerk: {
             rooms: {},
             customers: {},
-            addRoomForCustomer: sandbox.spy(),
-            removeRooms: sandbox.spy(),
-            removeRoomForCustomer: sandbox.spy()
+            addRoomForCustomer: sinon.spy(),
+            removeRooms: sinon.spy(),
+            removeRoomForCustomer: sinon.spy()
           },
           pluginsManager: {
-            trigger: sandbox.spy()
+            trigger: sinon.spy()
           },
           services: {
             list: {
               storageEngine: {
-                setAutoRefresh: sandbox.spy()
+                setAutoRefresh: sinon.spy()
               }
             }
           },
           validation: {
-            curateSpecification: sandbox.spy()
+            curateSpecification: sinon.spy()
           }
         }
       }
@@ -57,14 +56,10 @@ describe('lib/cluster/node', () => {
     node = new Node(clusterHandler, context, options);
 
     node.broker = {
-      close: sandbox.spy(),
-      listen: sandbox.spy(),
+      close: sinon.spy(),
+      listen: sinon.spy(),
       unsubscribe: sinon.spy()
     };
-  });
-
-  afterEach(() => {
-    sandbox.restore();
   });
 
   describe('#constructor', () => {
@@ -95,26 +90,21 @@ describe('lib/cluster/node', () => {
     it('should do its job', () => {
       node.detach();
 
-      should(node.broker.reconnect).be.false();
-      should(node.broker.close).be.calledOnce();
+      should(node.broker.unsubscribe)
+        .be.calledWith('cluster:update')
+        .be.calledWith('cluster:join')
+        .be.calledWith('cluster:uuid');
       should(node.isReady).be.false();
     });
 
   });
 
   describe('#merge', () => {
-    var rewireRevert;
 
-    before(() => {
-      rewireRevert = Node.__set__({
-        mergeAddRoom: sinon.spy(),
-        mergeDelRoom: sinon.spy(),
-        updateAutoRefresh: sinon.spy()
-      });
-    });
-
-    after(() => {
-      rewireRevert();
+    beforeEach(() => {
+      node.mergeAddRoom = sinon.spy();
+      node.mergeDelRoom = sinon.spy();
+      node.updateAutoRefresh = sinon.spy();
     });
 
     it('should call kuzzle.indexCache.add with proper values when an `icAdd` key is given', () => {
@@ -139,24 +129,31 @@ describe('lib/cluster/node', () => {
     });
 
     it('should call the mergeAddRoom function when an `hcR` key is given', () => {
-      node.merge([{hcR: {}}]);
+      const diff = {hotel: 'clerk'};
 
-      should(Node.__get__('mergeAddRoom')).be.calledOnce();
-      should(Node.__get__('mergeAddRoom')).be.calledWith(node.kuzzle.hotelClerk, {});
+      node.merge([{hcR: diff}]);
+
+      should(node.mergeAddRoom)
+        .be.calledOnce()
+        .be.calledWith(diff);
     });
 
     it('should call the mergeDelRoom function when an `hcDel` key is given', () => {
-      node.merge({hcDel: {}});
+      const diff = {hotel: 'clerk'};
 
-      should(Node.__get__('mergeDelRoom')).be.calledOnce();
-      should(Node.__get__('mergeDelRoom')).be.calledWith(node.kuzzle.hotelClerk, {});
+      node.merge({hcDel: diff});
+
+      should(node.mergeDelRoom)
+        .be.calledOnce()
+        .be.calledWith(diff);
     });
 
     it('should call the updateAutoRefresh function when an `ar` key is given', () => {
       node.merge({ar: {i: 'index', v: 'value'}});
 
-      should(Node.__get__('updateAutoRefresh')).be.calledOnce();
-      should(Node.__get__('updateAutoRefresh')).be.calledWithExactly(node.kuzzle.services.list.storageEngine, 'index', 'value');
+      should(node.updateAutoRefresh)
+        .be.calledOnce()
+        .be.calledWith('index', 'value');
     });
 
     it('should store the new filters subscription when an `ftAdd` key is given', () => {
@@ -174,10 +171,9 @@ describe('lib/cluster/node', () => {
   });
 
   describe('#mergeAddRoom', () => {
-    var mergeAddRoom = Node.__get__('Node.prototype.mergeAddRoom');
 
     it('should update the hotelclerk', () => {
-      mergeAddRoom(node.kuzzle.hotelClerk, {
+      node.mergeAddRoom({
         i: 'index',
         c: 'collection',
         ch: ['channelId', 'states'],
@@ -206,10 +202,9 @@ describe('lib/cluster/node', () => {
   });
 
   describe('#mergeDelRoom', () => {
-    var mergeDelRoom = Node.__get__('Node.prototype.mergeDelRoom');
 
     it('should remove the room entry', () => {
-      mergeDelRoom(node.kuzzle.hotelClerk, {
+      node.mergeDelRoom({
         c: {i: 'myconnection'},
         r: 'roomId'
       });
@@ -223,20 +218,19 @@ describe('lib/cluster/node', () => {
   });
 
   describe('#updateAutoRefresh', () => {
-    var updateAutoRefresh = Node.__get__('Node.prototype.updateAutoRefresh');
 
     it('should call kuzzle write engine with a valid requestObject', () => {
-      var
+      let
         request;
 
-      updateAutoRefresh(node.kuzzle.services.list.storageEngine, 'index', 'value');
+      node.updateAutoRefresh('index', 'value');
 
       should(node.kuzzle.services.list.storageEngine.setAutoRefresh).be.calledOnce();
       request = node.kuzzle.services.list.storageEngine.setAutoRefresh.firstCall.args[0];
 
       should(request).be.instanceOf(Request);
       should(request.input.resource.index).be.exactly('index');
-      should(request.input.controller).be.exactly('admin');
+      should(request.input.controller).be.exactly('index');
       should(request.input.action).be.exactly('setAutoRefresh');
       should(request.input.body.autoRefresh).be.exactly('value');
     });
