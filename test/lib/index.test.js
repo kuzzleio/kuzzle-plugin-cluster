@@ -276,7 +276,7 @@ describe('lib/index', () => {
         broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.autoRefreshUpdated(true);
+      kuzzleCluster.autoRefreshUpdated();
       should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
     });
 
@@ -367,10 +367,10 @@ describe('lib/index', () => {
     it('should call `onJoinedLb` on `joined` messages', () => {
       const msg = {action: 'joined', foo: 'bar'};
 
-      onLbMessage.call(kuzzleCluster, msg);
+      onLbMessage(kuzzleCluster, msg);
       should(KuzzleCluster.__get__('onJoinedLb')).be.calledOnce();
       should(onJoinedSpy).be.calledOnce();
-      should(onJoinedSpy).be.calledWithExactly(msg);
+      should(onJoinedSpy).be.calledWithExactly(kuzzleCluster, msg);
     });
 
     it('should log the ack response', () => {
@@ -378,7 +378,7 @@ describe('lib/index', () => {
 
       kuzzleCluster.kuzzle = pluginContext.accessors.kuzzle;
 
-      onLbMessage.call(kuzzleCluster, msg);
+      onLbMessage(kuzzleCluster, msg);
       should(kuzzleCluster.kuzzle.pluginsManager.trigger)
         .be.calledOnce()
         .be.calledWith('log:info',
@@ -406,7 +406,7 @@ describe('lib/index', () => {
 
       kuzzleCluster.node = {detach: spy};
 
-      return onJoinedLb.call(kuzzleCluster, {
+      return onJoinedLb(kuzzleCluster, {
         uuid: kuzzleCluster.uuid
       })
         .then(() => {
@@ -415,7 +415,7 @@ describe('lib/index', () => {
     });
 
     it('should set a slave node if the master uuid is not itself', () => {
-      return onJoinedLb.call(kuzzleCluster, {
+      return onJoinedLb(kuzzleCluster, {
         uuid: 'master-uuid',
         host: 'master-host',
         port: 'master-port'
@@ -430,7 +430,7 @@ describe('lib/index', () => {
     });
 
     it('should set a master node if the master uuid is itself', () => {
-      return onJoinedLb.call(kuzzleCluster, {
+      return onJoinedLb(kuzzleCluster, {
         uuid: kuzzleCluster.uuid
       })
         .then(() => {
@@ -446,12 +446,13 @@ describe('lib/index', () => {
       const
         error = new Error('mine'),
         reset = KuzzleCluster.__set__({
+          /** @constructor */
           MasterNode: function MasterNode () {          // eslint-disable-line no-shadow
             this.init = sandbox.stub().rejects(error);  // eslint-disable-line no-invalid-this
           }
         });
 
-      return onJoinedLb.call(kuzzleCluster, {
+      return onJoinedLb(kuzzleCluster, {
         uuid: kuzzleCluster.uuid
       })
         .then(() => {
