@@ -40,7 +40,7 @@ fi
 
 docker-compose -p cluster -f "$COMPOSE_FILE" kill
 docker-compose -p cluster -f "$COMPOSE_FILE" scale kuzzle=1
-docker-compose -p cluster -f "$COMPOSE_FILE" rm -fva 2> /dev/null
+docker-compose -p cluster -f "$COMPOSE_FILE" rm -fv 2> /dev/null
 docker-compose -p cluster -f "$COMPOSE_FILE" up
 
 
