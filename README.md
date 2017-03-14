@@ -14,6 +14,8 @@ At the time this document is written, this plugin is working using the following
 * Kuzzle: >= [1.0.0-RC9 release](https://github.com/kuzzleio/kuzzle/tree/1.0.0-RC9)
 * LB => [1.0.0-RC9 release](https://github.com/kuzzleio/kuzzle-load-balancer/tree/1.0.0-RC9)
 
+Step 1: Edit docker-compose/my.env file (cf docker-compose/my.env.sample), then:
+
 ```bash
 cd <dir>
 git clone -b 1.0.0-RC9 git@github.com:kuzzleio/kuzzle.git

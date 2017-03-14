@@ -108,21 +108,21 @@ describe('lib/cluster/node', () => {
     });
 
     it('should call kuzzle.indexCache.add with proper values when an `icAdd` key is given', () => {
-      node.merge({icAdd: {i: 'index', c: 'collection'}});
+      node.merge([{icAdd: {i: 'index', c: 'collection'}}]);
 
       should(node.kuzzle.indexCache.add).be.calledOnce();
       should(node.kuzzle.indexCache.add).be.calledWithExactly('index', 'collection', false);
     });
 
     it('should call kuzzle.indexCache.remove with proper values when an `icDel` key is given', () => {
-      node.merge({icDel: {i: 'index', c: 'collection'}});
+      node.merge([{icDel: {i: 'index', c: 'collection'}}]);
 
       should(node.kuzzle.indexCache.remove).be.calledOnce();
       should(node.kuzzle.indexCache.remove).be.calledWithExactly('index', 'collection', false);
     });
 
     it('should call kuzzle.indexCache.reset with proper values when an `icReset` key is given', () => {
-      node.merge({icReset: {i: 'index'}});
+      node.merge([{icReset: {i: 'index'}}]);
 
       should(node.kuzzle.indexCache.reset).be.calledOnce();
       should(node.kuzzle.indexCache.reset).be.calledWithExactly('index', false);
@@ -141,7 +141,7 @@ describe('lib/cluster/node', () => {
     it('should call the mergeDelRoom function when an `hcDel` key is given', () => {
       const diff = {hotel: 'clerk'};
 
-      node.merge({hcDel: diff});
+      node.merge([{hcDel: diff}]);
 
       should(node.mergeDelRoom)
         .be.calledOnce()
@@ -149,7 +149,7 @@ describe('lib/cluster/node', () => {
     });
 
     it('should call the updateAutoRefresh function when an `ar` key is given', () => {
-      node.merge({ar: {i: 'index', v: 'value'}});
+      node.merge([{ar: {i: 'index', v: 'value'}}]);
 
       should(node.updateAutoRefresh)
         .be.calledOnce()
@@ -157,14 +157,14 @@ describe('lib/cluster/node', () => {
     });
 
     it('should store the new filters subscription when an `ftAdd` key is given', () => {
-      node.merge({ftAdd: {i: 'index', c: 'collection', f: {some: 'filters'}}});
+      node.merge([{ftAdd: {i: 'index', c: 'collection', f: {some: 'filters'}}}]);
 
       should(context.accessors.kuzzle.dsl.storage.store).be.calledOnce();
       should(context.accessors.kuzzle.dsl.storage.store).be.calledWithMatch('index', 'collection', {some: 'filters'});
     });
 
     it('should trigger an update specifications when an `vu` key is given', () => {
-      node.merge({vu: {}});
+      node.merge([{vu: {}}]);
 
       should(context.accessors.kuzzle.validation.curateSpecification).be.calledOnce();
     });
