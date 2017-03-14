@@ -167,8 +167,12 @@ class KuzzleCluster {
     let msg = {icReset: {i: diff.index}};
 
     debug('[%s] broadcasting "index cache reset" action:\n%O', this.uuid, msg);
+<<<<<<< HEAD
 
     this.node.broker.broadcast('cluster:update', [msg]);
+=======
+    this.node.broker.broadcast('cluster:update',  [msg]);
+>>>>>>> fix-16-broadcast-role-and-security-updates
   }
 
   /**
@@ -184,8 +188,10 @@ class KuzzleCluster {
       secPU: diff
     };
 
+<<<<<<< HEAD
+=======
     debug('[%s] broadcasting "profile update" action:\n%O', this.uuid, msg);
-    
+>>>>>>> fix-16-broadcast-role-and-security-updates
     this.node.broker.broadcast('cluster:update', [msg]);
   }
 
@@ -209,7 +215,7 @@ class KuzzleCluster {
 
   /**
    *
-   * @param {Object} diff
+   * @param {Array} diff
    */
   subscriptionAdded (diff) {
     if (!this.node || !this.node.isReady) {
