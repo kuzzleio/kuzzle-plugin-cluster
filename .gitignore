@@ -5,3 +5,7 @@
 /docker-compose/docker-compose.yml
 /docker-compose/npm-install.yml
 /docker-compose/tmp
+
+# ignore merge original file
+*.orig
+
