@@ -1,10 +1,12 @@
 if [ ! -f ./my.env ]; then
     echo "Edit my.env and run me again"
-    exit 0
+    exit 1
 fi
 
 # main
 . ./my.env
+
+export NODE_ENV=${NODE_ENV:-development}
 
 # lb
 export LB_IMAGE=${LB_IMAGE:-kuzzleio/dev}

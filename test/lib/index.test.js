@@ -119,9 +119,9 @@ describe('lib/index', () => {
 
       kuzzleCluster.indexCacheAdded({index: 'index', collection: 'collection'});
       should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWithExactly('cluster:update', {
+      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', [{
         icAdd: {i: 'index', c: 'collection'}
-      });
+      }]);
     });
 
   });
@@ -146,9 +146,9 @@ describe('lib/index', () => {
 
       kuzzleCluster.indexCacheRemoved({index: 'index', collection: 'collection'});
       should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWithExactly('cluster:update', {
+      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', [{
         icDel: {i: 'index', c: 'collection'}
-      });
+      }]);
     });
 
   });
@@ -173,9 +173,9 @@ describe('lib/index', () => {
 
       kuzzleCluster.indexCacheReset({index: 'index'});
       should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWithExactly('cluster:update', {
+      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', [{
         icReset: {i: 'index'}
-      });
+      }]);
     });
 
   });
@@ -233,7 +233,7 @@ describe('lib/index', () => {
 
       kuzzleCluster.subscriptionJoined(diff);
       should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', diff);
+      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', [diff]);
     });
 
   });
@@ -261,9 +261,9 @@ describe('lib/index', () => {
         roomId: 'roomId'
       });
       should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', {
+      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', [{
         hcDel: { c: {i: 'connection', p: 'foo'}, r: 'roomId'}
-      });
+      }]);
     });
 
   });
@@ -301,9 +301,9 @@ describe('lib/index', () => {
 
       kuzzleCluster.autoRefreshUpdated(new Request({index: 'index', body: {autoRefresh: true}}));
       should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWithExactly('cluster:update', {
+      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', [{
         ar: {i: 'index', v: true}
-      });
+      }]);
     });
 
   });

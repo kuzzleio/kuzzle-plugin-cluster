@@ -13,7 +13,7 @@ services:
       - proxy_backend__host=0.0.0.0
       - proxy_backend__socket=false
       - proxy_backend__port=7331
-      - NODE_ENV=development
+      - NODE_ENV=${NODE_ENV}
       - DEBUG=${LB_DEBUG}
 
   kuzzle:
@@ -37,7 +37,7 @@ services:
       - kuzzle_services__internalBroker__port=7911
       - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
       - kuzzle_plugins__kuzzle-plugin-logger__config__threads=false
-      - NODE_ENV=development
+      - NODE_ENV=${NODE_ENV}
       - DEBUG=${KUZ_DEBUG}
 
   redis:

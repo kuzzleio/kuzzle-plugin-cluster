@@ -134,14 +134,12 @@ describe('lib/cluster/masterNode', () => {
 
       onClose.call(node, 'cluster:foo');
       should(node.broker.broadcast)
-        .be.calledWith('cluster:update', {cs: node.clusterStatus});
+        .be.calledWith('cluster:update', [{cs: node.clusterStatus}]);
 
       should(node.clusterStatus.slaves)
         .be.empty();
       should(node.clusterStatus.nodesCount)
         .be.eql(1);
-
-
 
     });
 

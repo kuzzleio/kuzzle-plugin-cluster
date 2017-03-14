@@ -11,11 +11,6 @@ _exit() {
 
 trap _exit SIGINT SIGTERM
 
-if [ ! -f ./my.env ]; then
-    _help
-    exit 0
-fi
-
 . ./build-compose.sh
 
 # main
@@ -40,7 +35,7 @@ fi
 
 docker-compose -p cluster -f "$COMPOSE_FILE" kill
 docker-compose -p cluster -f "$COMPOSE_FILE" scale kuzzle=1
-docker-compose -p cluster -f "$COMPOSE_FILE" rm -fva 2> /dev/null
+docker-compose -p cluster -f "$COMPOSE_FILE" rm -fv 2> /dev/null
 docker-compose -p cluster -f "$COMPOSE_FILE" up
 
 
