@@ -11,11 +11,6 @@ _exit() {
 
 trap _exit SIGINT SIGTERM
 
-if [ ! -f ./my.env ]; then
-    _help
-    exit 0
-fi
-
 . ./build-compose.sh
 
 # main
