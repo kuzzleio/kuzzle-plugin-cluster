@@ -1,14 +1,17 @@
-var
-  rewire = require('rewire'),
+const
   should = require('should'),
   sinon = require('sinon'),
-  sandbox = sinon.sandbox.create(),
-  MasterNode = rewire('../../../lib/cluster/masterNode'),
-  Node = require('../../../lib/cluster/node'),
-  Slave = sinon.spy();
+  MasterNode = require('../../../lib/cluster/masterNode'),
+  Node = require('../../../lib/cluster/node');
 
 describe('lib/cluster/masterNode', () => {
-  var
+  let
+    clusterHandler,
+    context,
+    options = {some: 'options'},
+    node;
+
+  beforeEach(() => {
     clusterHandler = {
       uuid: 'uuid',
       config: {
@@ -18,28 +21,37 @@ describe('lib/cluster/masterNode', () => {
           retryInterval: 42
         }
       }
-    },
+    };
+
     context = {
       accessors: {
         kuzzle: {
-          services: { list: { broker: {} } },
+          services: {
+            list: {
+              broker: {
+                broadcast: sinon.spy(),
+                onConnectHandlers: [],
+                onCloseHandlers: [],
+                onErrorHandlers: [],
+                listen: sinon.spy(),
+                send: sinon.spy()
+              }
+            }
+          },
           hotelClerk: { rooms: 'rooms', customers: 'customers' },
           dsl: {storage: { filters: { fId: {index: 'index', collection: 'collection', filters: 'filters'}}}},
           indexCache: { indexes: 'indexes' }
         }
-      }},
+      }};
+
     options = {some: 'options'};
 
-  afterEach(() => {
-    sandbox.restore();
+    node = new MasterNode(clusterHandler, context, options);
   });
 
   describe('#constructor', () => {
 
     it('should setup a valid master node', () => {
-      var
-        node = new MasterNode(clusterHandler, context, options);
-
       should(node.clusterHandler).be.exactly(clusterHandler);
       should(node.context).be.exactly(context);
       should(node.options).be.exactly(options);
@@ -48,85 +60,46 @@ describe('lib/cluster/masterNode', () => {
       should(node.slaves).be.an.Object();
       should(node.slaves).be.empty();
       should(node.isReady).be.false();
-    });
 
-    it('should inherit from Node', () => {
-      var node = new MasterNode(clusterHandler, context, options);
-
-      should(node).be.an.instanceOf(Node);
+      should(node).be.an.instanceof(Node);
     });
 
   });
 
   describe('#init', () => {
-    var
-      node,
-      spy = sinon.spy(),
-      revert;
-
-    before(() => {
-      revert = MasterNode.__set__('attachEvents', spy);
-      node = new MasterNode(clusterHandler, context, options);
-    });
-
-    after(() => {
-      revert();
-    });
 
     it('should set the broker and attach the listeners', () => {
-      node.init();
+      node.attachEvents = sinon.spy();
 
-      should(node.broker).be.exactly(context.accessors.kuzzle.services.list.broker);
-      should(spy).be.calledOnce();
+      return node.init()
+        .then(() => {
+          should(node.broker).be.exactly(context.accessors.kuzzle.services.list.broker);
+          should(node.attachEvents)
+            .be.calledOnce();
+          should(node.isReady)
+            .be.true();
+        });
     });
 
   });
 
   describe('#attachEvents', () => {
-    var
-      attachEvents = MasterNode.__get__('attachEvents'),
-      cb,
-      node = {
-        addDiffListener: sinon.spy(),
-        broker: {
-          listen: sandbox.spy((channel, callback) => { cb = callback; }),
-          broadcast: sandbox.spy((channel, callback) => { cb = callback; }),
-          send: sandbox.spy(),
-          onConnectHandlers: [],
-          onCloseHandlers: [],
-          onErrorHandlers: []
-        },
-        clusterStatus: {
-          nodesCount: 1,
-          slaves: {},
-          master: clusterHandler
-        },
-        kuzzle: context.accessors.kuzzle,
-        slaves: {}
-      },
-      revert;
 
-    before(() => {
-      revert = MasterNode.__set__({
-        _context: 'context',
-        Slave
-      });
-    });
-
-    after(() => {
-      revert();
+    beforeEach(() => {
+      node.broker = context.accessors.kuzzle.services.list.broker;
     });
 
     it('should do its job', () => {
+      node.addDiffListener = sinon.spy();
 
-      attachEvents.call(node);
+      node.attachEvents();
 
       should(node.broker.listen).be.calledOnce();
-      should(node.broker.listen).be.calledWith('cluster:join', cb);
+      should(node.broker.listen).be.calledWith('cluster:join');
       should(node.addDiffListener).be.calledOnce();
 
       // cb test
-      cb.call(node, {uuid:'foobar', options: {binding: 'binding'}});
+      node.broker.listen.firstCall.args[1].call(node, {uuid:'foobar', options: {binding: 'binding'}});
 
       should(node.broker.send).be.calledOnce();
       should(node.broker.send).be.calledWith('cluster:foobar', {
@@ -146,6 +119,28 @@ describe('lib/cluster/masterNode', () => {
       node.isReady = true;
       node.broker.onErrorHandlers[0]();
       should(node.isReady).be.false();
+
+
+      // on close handler should broadcast the client disconnection
+      let onClose = node.broker.onCloseHandlers[0];
+
+      node.slaves = {
+        foo: 'bar'
+      };
+      node.clusterStatus = {
+        nodesCount: 2,
+        slaves: node.slaves         // /!\ <= needs to be a reference
+      };
+
+      onClose.call(node, 'cluster:foo');
+      should(node.broker.broadcast)
+        .be.calledWith('cluster:update', [{cs: node.clusterStatus}]);
+
+      should(node.clusterStatus.slaves)
+        .be.empty();
+      should(node.clusterStatus.nodesCount)
+        .be.eql(1);
+
     });
 
   });

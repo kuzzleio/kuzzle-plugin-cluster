@@ -1,183 +1,234 @@
-var
+const
   Promise = require('bluebird'),
   rewire = require('rewire'),
   should = require('should'),
   sinon = require('sinon'),
-  sandbox = sinon.sandbox.create(),
   Node = require('../../../lib/cluster/node'),
   SlaveNode = rewire('../../../lib/cluster/slaveNode');
 
 describe('lib/cluster/slaveNode', () => {
-  var
+  let
+    broker,
     clusterHandler = {
       uuid: 'uuid'
     },
+    options = {binding: 'binding', host: '_host', port: '_port'},
+    context,
+    node;
+
+  beforeEach(() => {
+    broker = {
+      _pingRequestIntervalId: true,
+      _pingRequestTimeoutId: true,
+      client: {
+        socket: {
+          removeAllListeners: sinon.spy()
+        }
+      },
+      close: sinon.spy(),
+      listen: sinon.spy(),
+      onConnectHandlers: [],
+      onCloseHandlers: [],
+      onErrorHandlers: [],
+      send: sinon.spy(),
+      unsubscribe: sinon.spy()
+    };
+
     context = {
       uuid: 'uuid',
       accessors: {
         kuzzle: {
-          services: { list: { broker: {} } },
+          services: {
+            list: {
+              broker: {},
+              proxyBroker: {
+                client: {
+                  socket: {
+                    emit: sinon.spy()
+                  }
+                }
+              }
+            }
+          },
           hotelClerk: { rooms: 'rooms', customers: 'customers' },
-          dsl: {storage: { store: sandbox.stub() }},
+          dsl: {storage: { store: sinon.stub() }},
           indexCache: { indexes: 'indexes' }
         }
+      },
+      constructors: {
+        services: {
+          WsBrokerClient: sinon.spy(function () {
+            return {
+              init: sinon.stub().returns(Promise.resolve()),
+              listen: sinon.spy(),
+              onConnectHandlers: [],
+              onCloseHandlers: [],
+              onErrorHandlers: [],
+              send: sinon.spy()
+            };
+          })
+        }
       }
-    },
-    options = {binding: 'binding', host: '_host', port: '_port'};
+    };
 
-  afterEach(() => {
-    sandbox.restore();
+    node = new SlaveNode(clusterHandler, context, options);
   });
 
   describe('#constructor', () => {
 
     it('should create a valid slave node object', () => {
-      var node = new SlaveNode(clusterHandler, context, options);
-
       should(node.kuzzle).be.exactly(context.accessors.kuzzle);
       should(node.options).be.exactly(options);
-    });
-
-    it('should inherit from Node', () => {
-      var node = new SlaveNode(clusterHandler, context, options);
-
       should(node).be.an.instanceOf(Node);
     });
   });
 
   describe('#init', () => {
-    var
-      attachEventsSpy = sinon.spy(),
-      wsClientSpy = sinon.spy(function () {
-        this.init = () => Promise.resolve();    // eslint-disable-line no-invalid-this
-      }),
-      reset;
-
-    before(() => {
-      reset = SlaveNode.__set__({
-        attachEvents: attachEventsSpy
-      });
-    });
-
-    after(() => {
-      reset();
-    });
-
-
     it('should set the broker and attach the events', () => {
-      var node = {
-        clusterHandler: {
-          uuid: 'uuid'
-        },
-        context: {
-          constructors: {
-            services: {
-              WsBrokerClient: wsClientSpy
-            }
-          }
-        },
-        options: 'options',
-        kuzzle: {pluginsManager: 'pluginsManager'}
-      };
+      node.attachEvents = sinon.spy();
 
-      return SlaveNode.prototype.init.call(node)
+      return node.init()
         .then(() => {
           should(node.broker).be.an.Object();
+
+          const wsClientSpy = context.constructors.services.WsBrokerClient;
+
           should(wsClientSpy).be.calledOnce();
           should(wsClientSpy).be.calledWith(
             'cluster',
-            'options',
-            'pluginsManager',
+            node.options,
+            node.kuzzle.pluginsManager,
             true
           );
-          should(attachEventsSpy).be.calledOnce();
+          should(node.attachEvents).be.calledOnce();
         });
     });
 
   });
 
+  describe('#detach', () => {
+
+    beforeEach(() => {
+      node.broker = broker;
+    });
+
+    it('should properly close the client connection', () => {
+      const
+        clearTimeoutSpy = sinon.spy();
+
+      SlaveNode.__with__({
+        clearTimeout: clearTimeoutSpy
+      })(() => {
+        node.detach();
+
+        // pong listener should be removed
+        should(broker.client.socket.removeAllListeners)
+          .be.calledOnce()
+          .be.calledWith('pong');
+
+        // ping pong timer reset
+        should(clearTimeoutSpy)
+          .be.calledTwice();
+
+        // closing connection
+        should(broker.close)
+          .be.calledOnce();
+
+        should(node.broker)
+          .be.null();
+      });
+
+    });
+
+  });
+
   describe('#attachEvents', () => {
-    var
-      attachEvents = SlaveNode.__get__('attachEvents'),
-      cb,
-      joinSpy,
-      node = {
-        clusterHandler: {
-          uuid: 'uuid'
-        },
-        addDiffListener: sinon.spy(),
-        broker: {
-          listen: sandbox.spy((channel, callback) => { cb = callback; }),
-          send: sandbox.spy(),
-          onCloseHandlers: [],
-          onErrorHandlers: [],
-          onConnectHandlers: []
-        },
-        kuzzle: context.accessors.kuzzle,
-        options: 'options'
-      },
-      reset;
-
-    before(() => {
-      joinSpy = sandbox.spy(SlaveNode.__get__('join'));
-      reset = SlaveNode.__set__('join', joinSpy);
+    beforeEach(() => {
+      node.broker = broker;
     });
 
-    after(() => {
-      reset();
+    it('should set up the listeners to collect information from the master', () => {
+      node.addDiffListener = sinon.spy();
+      node.join = sinon.spy();
+
+      node.attachEvents();
+
+      should(node.addDiffListener)
+        .be.calledOnce();
+
+      should(node.broker.listen)
+        .be.calledOnce()
+        .be.calledWith('cluster:uuid');
+
+      let
+        listenCB = node.broker.listen.firstCall.args[1],
+        msg = {
+          action: 'snapshot',
+          data: {
+            fs: [
+              {idx: 0, coll: 'foo', f: 'filter'},
+              {idx: 2, coll: 'bar', f: 'doh'}
+            ],
+            hc: {
+              r: 'rooms',
+              c: 'customers'
+            }
+          }
+        };
+      listenCB.call(node, msg);
+
+      should(node.kuzzle.hotelClerk.rooms)
+        .be.eql(msg.data.hc.r);
+      should(node.kuzzle.hotelClerk.customers)
+        .be.eql(msg.data.hc.c);
+      should(node.kuzzle.dsl.storage.store)
+        .be.calledTwice();
+      should(node.isReady)
+        .be.true();
+
+
+      should(node.join)
+        .be.calledOnce();
+
+      should(node.broker.onConnectHandlers)
+        .have.length(1);
+      should(node.broker.onCloseHandlers)
+        .have.length(1);
+      should(node.broker.onErrorHandlers)
+        .have.length(1);
+
+      // errorhandler
+      let onErrorCb = node.broker.onErrorHandlers[0];
+
+      // @kuzzle pending update
+      // should deal with undefined error
+      onErrorCb();
+      should(node.kuzzle.services.list.proxyBroker.client.socket.emit)
+        .be.calledOnce();
+
+      let err = new Error('test');
+
+      onErrorCb(err);
+      should(node.kuzzle.services.list.proxyBroker.client.socket.emit)
+        .be.calledTwice();
+      let sentError = node.kuzzle.services.list.proxyBroker.client.socket.emit.secondCall.args[1];
+      should(sentError.message)
+        .be.eql('test');
+
     });
 
-    it('should do its job', () => {
-      attachEvents.call(node);
+  });
 
-      should(node.broker.listen).be.calledOnce();
-      should(node.broker.listen).be.calledWith('cluster:uuid', cb);
-      should(node.broker.send).be.calledOnce();
-      should(node.broker.send).be.calledWith('cluster:join', {
-        uuid: 'uuid',
-        options: 'options'
-      });
-      should(node.addDiffListener).be.calledOnce();
-      should(joinSpy).be.calledOnce();
-      should(node.broker.onConnectHandlers).have.length(1);
-      should(node.broker.onCloseHandlers).have.length(1);
-      should(node.broker.onErrorHandlers).have.length(1);
+  describe('#join', () => {
 
-      // onJoin
-      node.isReady = false;
-      node.broker.onConnectHandlers[0]();
-      should(joinSpy).have.callCount(2);
+    it('should send a join request to the master', () => {
+      node.broker = broker;
 
-      // onClose
-      node.isReady = true;
-      node.broker.onCloseHandlers[0]();
-      should(node.isReady).be.false();
+      node.join();
 
-      // onError
-      node.isReady = true;
-      node.broker.onErrorHandlers[0]();
-      should(node.isReady).be.false();
-
-      // cb
-      cb.call(node, {
-        action: 'snapshot',
-        data: {
-          hc: {
-            r: 'rooms',
-            c: 'customers'
-          },
-          fs: [{idx: 'idx', coll: 'coll', f: 'filters'}],
-          ic: 'indexes'
-        }
-      });
-
-      should(node.kuzzle.hotelClerk.rooms).be.exactly('rooms');
-      should(node.kuzzle.hotelClerk.customers).be.exactly('customers');
-
-      should(node.kuzzle.dsl.storage.store.calledWith('idx', 'coll', 'filters')).be.true();
-
-      should(node.kuzzle.indexCache.indexes).be.exactly('indexes');
-
+      should(node.broker.send)
+        .be.calledOnce()
+        .be.calledWith('cluster:join');
     });
 
   });

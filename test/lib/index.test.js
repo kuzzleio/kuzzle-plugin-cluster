@@ -1,4 +1,4 @@
-var
+const
   rewire = require('rewire'),
   should = require('should'),
   sinon = require('sinon'),
@@ -8,7 +8,7 @@ var
   RequestContext = require('kuzzle-common-objects').models.RequestContext;
 
 describe('lib/index', () => {
-  var
+  let
     pluginContext,
     kuzzleCluster,
     MasterNode = sandbox.spy(function MasterNode () {
@@ -36,9 +36,10 @@ describe('lib/index', () => {
             binding: '_host:666'
           }
         },
-        pluginsManager: {trigger: sandbox.spy()},
+        pluginsManager: {trigger: sandbox.spy(), isInit: true},
         services: {list: {
           proxyBroker: {
+            handlers: {},
             listen: sandbox.spy(),
             send: sandbox.spy()
           }
@@ -54,8 +55,8 @@ describe('lib/index', () => {
 
   describe('#init', () => {
 
-    it('should extend its config with Kuzzle cluster one', () => {
-      var
+    it('should set internal properties', () => {
+      const
         context = {
           accessors: {kuzzle: {config: {cluster:{ foo: 'bar'}}}}
         };
@@ -64,8 +65,6 @@ describe('lib/index', () => {
         resolveBinding: sinon.stub().returns('newBinding')
       })(() => {
         kuzzleCluster.init({some: 'value', binding: 'binding'}, context, true);
-
-        should(kuzzleCluster.config).have.properties(['binding', 'some', 'foo']);
 
         should(KuzzleCluster.__get__('resolveBinding')).be.calledOnce();
         should(KuzzleCluster.__get__('resolveBinding')).be.calledWith('binding');
@@ -79,11 +78,11 @@ describe('lib/index', () => {
 
   });
 
-  describe('#kuzzleStarted', () => {
+  describe('#connectedToLB', () => {
 
     it('should use Kuzzle proxy broker to get the master/slave information', () => {
       kuzzleCluster.init({}, pluginContext);
-      kuzzleCluster.kuzzleStarted();
+      kuzzleCluster.connectedToLB();
 
       should(kuzzleCluster.lbBroker).be.exactly(pluginContext.accessors.kuzzle.services.list.proxyBroker);
       should(kuzzleCluster.lbBroker.listen).be.calledTwice();
@@ -93,8 +92,8 @@ describe('lib/index', () => {
       should(kuzzleCluster.lbBroker.send).be.calledWith('cluster:join', {
         action: 'joined',
         uuid: kuzzleCluster.uuid,
-        host: '_host',
-        port: 666
+        host: kuzzleCluster.config.binding.host,
+        port: kuzzleCluster.config.binding.port
       });
     });
 
@@ -120,9 +119,9 @@ describe('lib/index', () => {
 
       kuzzleCluster.indexCacheAdded({index: 'index', collection: 'collection'});
       should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWithExactly('cluster:update', {
+      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', [{
         icAdd: {i: 'index', c: 'collection'}
-      });
+      }]);
     });
 
   });
@@ -147,14 +146,14 @@ describe('lib/index', () => {
 
       kuzzleCluster.indexCacheRemoved({index: 'index', collection: 'collection'});
       should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWithExactly('cluster:update', {
+      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', [{
         icDel: {i: 'index', c: 'collection'}
-      });
+      }]);
     });
 
   });
 
-  describe('#indexCacheResett', () => {
+  describe('#indexCacheReset', () => {
 
     it('should do nothing if not ready', () => {
       kuzzleCluster.node = {
@@ -162,7 +161,7 @@ describe('lib/index', () => {
         broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.indexCacheResett(true);
+      kuzzleCluster.indexCacheReset(true);
       should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
     });
 
@@ -172,11 +171,11 @@ describe('lib/index', () => {
         broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.indexCacheResett({index: 'index'});
+      kuzzleCluster.indexCacheReset({index: 'index'});
       should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWithExactly('cluster:update', {
+      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', [{
         icReset: {i: 'index'}
-      });
+      }]);
     });
 
   });
@@ -194,7 +193,7 @@ describe('lib/index', () => {
     });
 
     it('should broadcast the received diff', () => {
-      var diff = {
+      const diff = {
         foo: 'bar'
       };
 
@@ -223,7 +222,7 @@ describe('lib/index', () => {
     });
 
     it('should broadcast the received diff', () => {
-      var diff = {
+      const diff = {
         foo: 'bar'
       };
 
@@ -234,7 +233,7 @@ describe('lib/index', () => {
 
       kuzzleCluster.subscriptionJoined(diff);
       should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', diff);
+      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', [diff]);
     });
 
   });
@@ -262,9 +261,9 @@ describe('lib/index', () => {
         roomId: 'roomId'
       });
       should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', {
+      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', [{
         hcDel: { c: {i: 'connection', p: 'foo'}, r: 'roomId'}
-      });
+      }]);
     });
 
   });
@@ -302,15 +301,15 @@ describe('lib/index', () => {
 
       kuzzleCluster.autoRefreshUpdated(new Request({index: 'index', body: {autoRefresh: true}}));
       should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWithExactly('cluster:update', {
+      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', [{
         ar: {i: 'index', v: true}
-      });
+      }]);
     });
 
   });
 
   describe('#resolveBindings', () => {
-    var
+    let
       resolveBinding = KuzzleCluster.__get__('resolveBinding'),
       revert;
 
@@ -329,7 +328,7 @@ describe('lib/index', () => {
     });
 
     it('should do its job', () => {
-      var response;
+      let response;
 
       should(resolveBinding('host')).be.eql({host: 'host', port: 999});
       should(resolveBinding('host:666')).be.eql({host: 'host', port: 666});
@@ -348,7 +347,7 @@ describe('lib/index', () => {
   });
 
   describe('#onLbMessage', () => {
-    var
+    let
       onJoinedSpy = sandbox.spy(),
       onLbMessage,
       reset;
@@ -366,7 +365,7 @@ describe('lib/index', () => {
     });
 
     it('should call `onJoinedLb` on `joined` messages', () => {
-      var msg = {action: 'joined', foo: 'bar'};
+      const msg = {action: 'joined', foo: 'bar'};
 
       onLbMessage.call(kuzzleCluster, msg);
       should(KuzzleCluster.__get__('onJoinedLb')).be.calledOnce();
@@ -375,22 +374,21 @@ describe('lib/index', () => {
     });
 
     it('should log the ack response', () => {
-      var msg = {action: 'ack', on: 'test'};
+      const msg = {action: 'ack', on: 'test'};
 
       kuzzleCluster.kuzzle = pluginContext.accessors.kuzzle;
 
       onLbMessage.call(kuzzleCluster, msg);
-      should(kuzzleCluster.kuzzle.pluginsManager.trigger).be.calledTwice();
-      should(kuzzleCluster.kuzzle.pluginsManager.trigger.firstCall).be.calledWith('log:debug',
-        '[cluster] onLbMessage: {"action":"ack","on":"test"}');
-      should(kuzzleCluster.kuzzle.pluginsManager.trigger.secondCall).be.calledWith('log:info',
-        '[cluster] ACK for test event received from LB');
+      should(kuzzleCluster.kuzzle.pluginsManager.trigger)
+        .be.calledOnce()
+        .be.calledWith('log:info',
+          '[cluster] ACK for test event received from LB');
     });
 
   });
 
   describe('#onJoinedLb', () => {
-    var
+    const
       onJoinedLb = KuzzleCluster.__get__('onJoinedLb');
 
     beforeEach(() => {
@@ -403,10 +401,10 @@ describe('lib/index', () => {
     });
 
     it('should destroy the node if it exists', () => {
-      var
+      const
         spy = sandbox.spy();
 
-      kuzzleCluster.node = {destroy: spy};
+      kuzzleCluster.node = {detach: spy};
 
       return onJoinedLb.call(kuzzleCluster, {
         uuid: kuzzleCluster.uuid
@@ -423,9 +421,10 @@ describe('lib/index', () => {
         port: 'master-port'
       })
         .then(() => {
-          should(kuzzleCluster.kuzzle.pluginsManager.trigger).be.calledTwice();
-          should(kuzzleCluster.kuzzle.pluginsManager.trigger.firstCall).be.calledWith('log:info', '[cluster] Notification: Kuzzle is ready');
-          should(kuzzleCluster.kuzzle.pluginsManager.trigger.secondCall).be.calledWith('log:info', '[cluster] uuid joined as SlaveNode on master-host:master-port');
+          should(kuzzleCluster.kuzzle.pluginsManager.trigger)
+            .be.calledTwice()
+            .be.calledWith('log:info', '[cluster] ready')
+            .be.calledWith('log:info', '[cluster] uuid joined as SlaveNode on master-host:master-port');
           should(kuzzleCluster.isMasterNode).be.exactly(false);
         });
     });
@@ -435,15 +434,16 @@ describe('lib/index', () => {
         uuid: kuzzleCluster.uuid
       })
         .then(() => {
-          should(kuzzleCluster.kuzzle.pluginsManager.trigger).be.calledTwice();
-          should(kuzzleCluster.kuzzle.pluginsManager.trigger.firstCall).be.calledWith('log:info', '[cluster] Notification: Kuzzle is ready');
-          should(kuzzleCluster.kuzzle.pluginsManager.trigger.secondCall).be.calledWith('log:info', '[cluster] uuid joined as MasterNode on undefined:undefined');
+          should(kuzzleCluster.kuzzle.pluginsManager.trigger)
+            .be.calledTwice()
+            .be.calledWith('log:info', '[cluster] ready')
+            .be.calledWith('log:info', '[cluster] uuid joined as MasterNode on undefined:undefined');
           should(kuzzleCluster.isMasterNode).be.exactly(true);
         });
     });
 
     it('should inform the broker if something went wrong with initing the node', () => {
-      var
+      const
         error = new Error('mine'),
         reset = KuzzleCluster.__set__({
           MasterNode: function MasterNode () {          // eslint-disable-line no-shadow

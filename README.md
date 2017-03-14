@@ -14,6 +14,8 @@ At the time this document is written, this plugin is working using the following
 * Kuzzle: >= [1.0.0-RC9 release](https://github.com/kuzzleio/kuzzle/tree/1.0.0-RC9)
 * LB => [1.0.0-RC9 release](https://github.com/kuzzleio/kuzzle-load-balancer/tree/1.0.0-RC9)
 
+Step 1: Edit docker-compose/my.env file (cf docker-compose/my.env.sample), then:
+
 ```bash
 cd <dir>
 git clone -b 1.0.0-RC9 git@github.com:kuzzleio/kuzzle.git
@@ -24,7 +26,8 @@ cd kuzzle-plugin-cluster
 cp docker-compose/my.env.sample docker-compose/my.env
 vim docker-compose/my.env
 
-./run-debug.sh
+./run-npm-install.sh
+./run.sh
 ```
 
 You should now have a full Kuzzle clustered stack running 3 Kuzzle front nodes (and 3 servers).

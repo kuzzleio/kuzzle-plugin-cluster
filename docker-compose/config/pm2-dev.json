@@ -3,7 +3,7 @@
     "name"         : "KuzzleServer",
     "script"       : "bin/kuzzle",
     "args"         : ["start"],
-    "watch"        : ["lib", "config", "bin"],
+    "watch"        : ["lib/**/*.js", "plugins/enabled/**/*.js", "/var/kuzzle-load-balancer/lib/**/*.js"],
     "ignore_watch" : ["node_modules"],
     "node_args": "--debug=7000"
   }]
