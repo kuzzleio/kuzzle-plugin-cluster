@@ -1,8 +1,7 @@
 const
-  rewire = require('rewire'),
   should = require('should'),
   sinon = require('sinon'),
-  Node = rewire('../../../lib/cluster/node'),
+  Node = require('../../../lib/cluster/node'),
   Request = require('kuzzle-common-objects').Request,
   RequestContext = require('kuzzle-common-objects').models.RequestContext;
 
@@ -33,9 +32,9 @@ describe('lib/cluster/node', () => {
           hotelClerk: {
             rooms: {},
             customers: {},
-            addRoomForCustomer: sinon.spy(),
+            _addRoomForCustomer: sinon.spy(),
             removeRooms: sinon.spy(),
-            removeRoomForCustomer: sinon.spy()
+            _removeRoomForCustomer: sinon.spy()
           },
           pluginsManager: {
             trigger: sinon.spy()
@@ -168,6 +167,40 @@ describe('lib/cluster/node', () => {
 
       should(context.accessors.kuzzle.validation.curateSpecification).be.calledOnce();
     });
+
+    it('should delete profiles from cache if modified', () => {
+      node.kuzzle.repositories = {
+        profile: {
+          profiles: {
+            id: {}
+          }
+        }
+      };
+      node.merge([{secPU: {_id: 'id'}}]);
+      should(node.kuzzle.repositories.profile.profiles.id)
+        .be.undefined();
+
+    });
+
+    it('should delete roles from cache if modified', () => {
+      node.kuzzle.repositories = {
+        role: {
+          roles: {
+            id: {}
+          }
+        }
+      };
+      node.merge([{secRU: {_id: 'id'}}]);
+      should(node.kuzzle.repositories.role.roles.id)
+        .be.undefined();
+    });
+
+    it('should update the cluster status', () => {
+      node.merge([{cs: {v: 'aStatus'}}]);
+      should(node.clusterStatus)
+        .match({v: 'aStatus'});
+    });
+
   });
 
   describe('#mergeAddRoom', () => {
@@ -185,18 +218,18 @@ describe('lib/cluster/node', () => {
       should(node.kuzzle.hotelClerk.rooms).be.eql({
         roomId: {
           id: 'roomId',
-          customers: [],
+          customers: new Set(),
           index: 'index',
           collection: 'collection',
           channels: { channelId: 'states' }
         }
       });
 
-      should(node.kuzzle.hotelClerk.addRoomForCustomer).be.calledOnce();
-      should(node.kuzzle.hotelClerk.addRoomForCustomer.firstCall.args[0]).be.instanceOf(Request);
-      should(node.kuzzle.hotelClerk.addRoomForCustomer.firstCall.args[0].context.connectionId).be.eql('myconnection');
-      should(node.kuzzle.hotelClerk.addRoomForCustomer.firstCall.args[1]).be.eql('roomId');
-      should(node.kuzzle.hotelClerk.addRoomForCustomer.firstCall.args[2]).match({meta: 'data'});
+      should(node.kuzzle.hotelClerk._addRoomForCustomer).be.calledOnce();
+      should(node.kuzzle.hotelClerk._addRoomForCustomer.firstCall.args[0]).be.instanceOf(Request);
+      should(node.kuzzle.hotelClerk._addRoomForCustomer.firstCall.args[0].context.connectionId).be.eql('myconnection');
+      should(node.kuzzle.hotelClerk._addRoomForCustomer.firstCall.args[1]).be.eql('roomId');
+      should(node.kuzzle.hotelClerk._addRoomForCustomer.firstCall.args[2]).match({meta: 'data'});
     });
 
   });
@@ -204,16 +237,18 @@ describe('lib/cluster/node', () => {
   describe('#mergeDelRoom', () => {
 
     it('should remove the room entry', () => {
+      node.kuzzle.hotelClerk.rooms.roomId = {};
+
       node.mergeDelRoom({
         c: {i: 'myconnection'},
         r: 'roomId'
       });
 
-      should(node.kuzzle.hotelClerk.removeRoomForCustomer).be.calledOnce();
-      should(node.kuzzle.hotelClerk.removeRoomForCustomer.firstCall.args[0]).be.instanceOf(RequestContext);
-      should(node.kuzzle.hotelClerk.removeRoomForCustomer.firstCall.args[0].connectionId).be.eql('myconnection');
-      should(node.kuzzle.hotelClerk.removeRoomForCustomer.firstCall.args[1]).be.eql('roomId');
-      should(node.kuzzle.hotelClerk.removeRoomForCustomer.firstCall.args[2]).be.false();
+      should(node.kuzzle.hotelClerk._removeRoomForCustomer).be.calledOnce();
+      should(node.kuzzle.hotelClerk._removeRoomForCustomer.firstCall.args[0]).be.instanceOf(RequestContext);
+      should(node.kuzzle.hotelClerk._removeRoomForCustomer.firstCall.args[0].connectionId).be.eql('myconnection');
+      should(node.kuzzle.hotelClerk._removeRoomForCustomer.firstCall.args[1]).be.eql('roomId');
+      should(node.kuzzle.hotelClerk._removeRoomForCustomer.firstCall.args[2]).be.false();
     });
   });
 

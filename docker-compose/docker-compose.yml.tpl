@@ -36,7 +36,7 @@ services:
       - kuzzle_services__internalBroker__host=0.0.0.0
       - kuzzle_services__internalBroker__port=7911
       - kuzzle_plugins__kuzzle-plugin-cluster__privileged=true
-      - kuzzle_plugins__kuzzle-plugin-logger__config__threads=false
+      - kuzzle_plugins__kuzzle-plugin-logger__threads=false
       - NODE_ENV=${NODE_ENV}
       - DEBUG=${KUZ_DEBUG}
 
