@@ -38,7 +38,32 @@ describe('lib/cluster/masterNode', () => {
               }
             }
           },
-          hotelClerk: { rooms: 'rooms', customers: 'customers' },
+          hotelClerk: {
+            rooms: {
+              r1: {
+                id: 'r1',
+                index: 'i1',
+                collection: 'c1',
+                channels: ['r1-a', 'r1-b'],
+                customers: new Set(['cust1', 'cust2'])
+              },
+              r2: {
+                id: 'r2',
+                index: 'i1',
+                collection: 'c2',
+                channels: ['r2-a'],
+                customers: new Set(['cust2', 'cust3', 'cust4'])
+              },
+              r3: {
+                id: 'r3',
+                index: 'i2',
+                collection: 'c',
+                channels: [],
+                customers: new Set(['cust3'])
+              }
+            },
+            customers: 'customers'
+          },
           dsl: {storage: { filters: { fId: {index: 'index', collection: 'collection', filters: 'filters'}}}},
           indexCache: { indexes: 'indexes' }
         }
@@ -106,8 +131,8 @@ describe('lib/cluster/masterNode', () => {
         action: 'snapshot',
         data: {
           hc: {
-            r: context.accessors.kuzzle.hotelClerk.rooms,
-            c: context.accessors.kuzzle.hotelClerk.customers
+            r: node._serializeRooms(node.kuzzle.hotelClerk.rooms),
+            c: node.kuzzle.hotelClerk.customers
           },
           fs: [{idx: 'index', coll: 'collection', f: 'filters'}],
           ic: context.accessors.kuzzle.indexCache.indexes

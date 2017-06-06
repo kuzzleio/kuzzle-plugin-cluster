@@ -1,79 +1,64 @@
 const
-  rewire = require('rewire'),
+  Bluebird = require('bluebird'),
+  InternalError = require('kuzzle-common-objects').errors.InternalError,
+  mock = require('mock-require'),
   should = require('should'),
   sinon = require('sinon'),
-  sandbox = sinon.sandbox.create(),
-  KuzzleCluster = rewire('../../lib/index'),
   Request = require('kuzzle-common-objects').Request,
   RequestContext = require('kuzzle-common-objects').models.RequestContext;
 
 describe('lib/index', () => {
   let
     pluginContext,
-    kuzzleCluster,
-    MasterNode = sandbox.spy(function MasterNode () {
-      this.init = sandbox.stub().resolves({});    // eslint-disable-line no-invalid-this
-    }),
-    SlaveNode = sandbox.spy(function SlaveNode () {
-      this.init = sandbox.stub().resolves({});    // eslint-disable-line no-invalid-this
-    });
-
-  KuzzleCluster.__set__({
-    MasterNode,
-    SlaveNode
-  });
+    cluster,
+    MNode,
+    SNode;
 
   beforeEach(() => {
+    MNode = sinon.spy(function MasterNode () {
+      this.init = sinon.stub().returns(Bluebird.resolve({}));    // eslint-disable-line no-invalid-this
+    });
+    SNode = sinon.spy(function SlaveNode () {
+      this.init = sinon.stub().returns(Bluebird.resolve({}));    // eslint-disable-line no-invalid-this
+    });
+
+    mock('../../lib/cluster/masterNode', MNode);
+    mock('../../lib/cluster/slaveNode', SNode);
+    const KuzzleCluster = mock.reRequire('../../lib/index');
+
     pluginContext = {
-      accessors: {kuzzle: {
-        config: {
-          services: {
-            internalBroker: {
-              port: 999
+      accessors: {
+        kuzzle: {
+          config: {
+            services: {
+              internalBroker: {
+                port: 999
+              }
+            },
+            cluster: {
+              binding: '_host:666'
             }
           },
-          cluster: {
-            binding: '_host:666'
+          pluginsManager: {trigger: sinon.spy(), isInit: true},
+          services: {
+            list: {
+              proxyBroker: {
+                handlers: {},
+                listen: sinon.spy(),
+                send: sinon.spy()
+              }
+            }
           }
-        },
-        pluginsManager: {trigger: sandbox.spy(), isInit: true},
-        services: {list: {
-          proxyBroker: {
-            handlers: {},
-            listen: sandbox.spy(),
-            send: sandbox.spy()
-          }
-        }}
-      }}
+        }
+      }
     };
-    kuzzleCluster = new KuzzleCluster();
-  });
-
-  afterEach(() => {
-    sandbox.restore();
+    cluster = new KuzzleCluster();
+    cluster.init({}, pluginContext);
   });
 
   describe('#init', () => {
-
-    it('should set internal properties', () => {
-      const
-        context = {
-          accessors: {kuzzle: {config: {cluster:{ foo: 'bar'}}}}
-        };
-
-      KuzzleCluster.__with__({
-        resolveBinding: sinon.stub().returns('newBinding')
-      })(() => {
-        kuzzleCluster.init({some: 'value', binding: 'binding'}, context, true);
-
-        should(KuzzleCluster.__get__('resolveBinding')).be.calledOnce();
-        should(KuzzleCluster.__get__('resolveBinding')).be.calledWith('binding');
-      });
-
-    });
-
     it('should return itself', () => {
-      should(kuzzleCluster.init({}, pluginContext)).be.exactly(kuzzleCluster);
+      should(cluster.init({}, pluginContext)).be.exactly(cluster);
     });
 
   });
@@ -81,19 +66,19 @@ describe('lib/index', () => {
   describe('#connectedToLB', () => {
 
     it('should use Kuzzle proxy broker to get the master/slave information', () => {
-      kuzzleCluster.init({}, pluginContext);
-      kuzzleCluster.connectedToLB();
+      cluster.init({}, pluginContext);
+      cluster.connectedToLB();
 
-      should(kuzzleCluster.lbBroker).be.exactly(pluginContext.accessors.kuzzle.services.list.proxyBroker);
-      should(kuzzleCluster.lbBroker.listen).be.calledTwice();
-      should(kuzzleCluster.lbBroker.listen.firstCall).be.calledWith('cluster:' + kuzzleCluster.uuid);
-      should(kuzzleCluster.lbBroker.listen.secondCall).be.calledWith('cluster:master');
-      should(kuzzleCluster.lbBroker.send).be.calledOnce();
-      should(kuzzleCluster.lbBroker.send).be.calledWith('cluster:join', {
+      should(cluster.lbBroker).be.exactly(pluginContext.accessors.kuzzle.services.list.proxyBroker);
+      should(cluster.lbBroker.listen).be.calledTwice();
+      should(cluster.lbBroker.listen.firstCall).be.calledWith('cluster:' + cluster.uuid);
+      should(cluster.lbBroker.listen.secondCall).be.calledWith('cluster:master');
+      should(cluster.lbBroker.send).be.calledOnce();
+      should(cluster.lbBroker.send).be.calledWith('cluster:join', {
         action: 'joined',
-        uuid: kuzzleCluster.uuid,
-        host: kuzzleCluster.config.binding.host,
-        port: kuzzleCluster.config.binding.port
+        uuid: cluster.uuid,
+        host: cluster.config.binding.host,
+        port: cluster.config.binding.port
       });
     });
 
@@ -102,24 +87,24 @@ describe('lib/index', () => {
   describe('#indexCacheAdded', () => {
 
     it('should do nothing if not ready', () => {
-      kuzzleCluster.node = {
+      cluster.node = {
         isReady: false,
         broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.indexCacheAdded(true);
-      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
+      cluster.indexCacheAdded(true);
+      should(cluster.node.broker.broadcast).have.callCount(0);
     });
 
     it('should broadcast an icAdd diff', () => {
-      kuzzleCluster.node = {
+      cluster.node = {
         isReady: true,
         broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.indexCacheAdded({index: 'index', collection: 'collection'});
-      should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', [{
+      cluster.indexCacheAdded({index: 'index', collection: 'collection'});
+      should(cluster.node.broker.broadcast).be.calledOnce();
+      should(cluster.node.broker.broadcast).be.calledWith('cluster:update', [{
         icAdd: {i: 'index', c: 'collection'}
       }]);
     });
@@ -129,24 +114,24 @@ describe('lib/index', () => {
   describe('#indexCacheRemoved', () => {
 
     it('should do nothing if not ready', () => {
-      kuzzleCluster.node = {
+      cluster.node = {
         isReady: false,
         broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.indexCacheRemoved(true);
-      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
+      cluster.indexCacheRemoved(true);
+      should(cluster.node.broker.broadcast).have.callCount(0);
     });
 
     it('should broadcast an icDel diff', () => {
-      kuzzleCluster.node = {
+      cluster.node = {
         isReady: true,
         broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.indexCacheRemoved({index: 'index', collection: 'collection'});
-      should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', [{
+      cluster.indexCacheRemoved({index: 'index', collection: 'collection'});
+      should(cluster.node.broker.broadcast).be.calledOnce();
+      should(cluster.node.broker.broadcast).be.calledWith('cluster:update', [{
         icDel: {i: 'index', c: 'collection'}
       }]);
     });
@@ -156,24 +141,24 @@ describe('lib/index', () => {
   describe('#indexCacheReset', () => {
 
     it('should do nothing if not ready', () => {
-      kuzzleCluster.node = {
+      cluster.node = {
         isReady: false,
         broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.indexCacheReset(true);
-      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
+      cluster.indexCacheReset(true);
+      should(cluster.node.broker.broadcast).have.callCount(0);
     });
 
     it('should broadcast an icReset diff', () => {
-      kuzzleCluster.node = {
+      cluster.node = {
         isReady: true,
         broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.indexCacheReset({index: 'index'});
-      should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', [{
+      cluster.indexCacheReset({index: 'index'});
+      should(cluster.node.broker.broadcast).be.calledOnce();
+      should(cluster.node.broker.broadcast).be.calledWith('cluster:update', [{
         icReset: {i: 'index'}
       }]);
     });
@@ -183,13 +168,13 @@ describe('lib/index', () => {
   describe('#subscriptionAdded', () => {
 
     it('should do nothing if not ready', () => {
-      kuzzleCluster.node = {
+      cluster.node = {
         isReady: false,
         broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.subscriptionAdded({});
-      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
+      cluster.subscriptionAdded({});
+      should(cluster.node.broker.broadcast).have.callCount(0);
     });
 
     it('should broadcast the received diff', () => {
@@ -197,14 +182,14 @@ describe('lib/index', () => {
         foo: 'bar'
       };
 
-      kuzzleCluster.node = {
+      cluster.node = {
         isReady: true,
-        broker: {broadcast: sandbox.spy()}
+        broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.subscriptionAdded(diff);
-      should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', diff);
+      cluster.subscriptionAdded(diff);
+      should(cluster.node.broker.broadcast).be.calledOnce();
+      should(cluster.node.broker.broadcast).be.calledWith('cluster:update', diff);
     });
 
   });
@@ -212,13 +197,13 @@ describe('lib/index', () => {
   describe('#subscriptionJoined', () => {
 
     it('should do nothing if not ready', () => {
-      kuzzleCluster.node = {
+      cluster.node = {
         isReady: false,
         broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.subscriptionJoined({});
-      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
+      cluster.subscriptionJoined({});
+      should(cluster.node.broker.broadcast).have.callCount(0);
     });
 
     it('should broadcast the received diff', () => {
@@ -226,14 +211,14 @@ describe('lib/index', () => {
         foo: 'bar'
       };
 
-      kuzzleCluster.node = {
+      cluster.node = {
         isReady: true,
-        broker: {broadcast: sandbox.spy()}
+        broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.subscriptionJoined(diff);
-      should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', [diff]);
+      cluster.subscriptionJoined(diff);
+      should(cluster.node.broker.broadcast).be.calledOnce();
+      should(cluster.node.broker.broadcast).be.calledWith('cluster:update', [diff]);
     });
 
   });
@@ -241,27 +226,27 @@ describe('lib/index', () => {
   describe('#subscriptionOff', () => {
 
     it('should do nothing if not ready', () => {
-      kuzzleCluster.node = {
+      cluster.node = {
         isReady: false,
         broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.subscriptionOff({});
-      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
+      cluster.subscriptionOff({});
+      should(cluster.node.broker.broadcast).have.callCount(0);
     });
 
     it('should broadcast an hcDel diff', () => {
-      kuzzleCluster.node = {
+      cluster.node = {
         isReady: true,
-        broker: {broadcast: sandbox.spy()}
+        broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.subscriptionOff({
+      cluster.subscriptionOff({
         requestContext: new RequestContext({connectionId: 'connection', protocol: 'foo'}),
         roomId: 'roomId'
       });
-      should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', [{
+      should(cluster.node.broker.broadcast).be.calledOnce();
+      should(cluster.node.broker.broadcast).be.calledWith('cluster:update', [{
         hcDel: { c: {i: 'connection', p: 'foo'}, r: 'roomId'}
       }]);
     });
@@ -271,143 +256,183 @@ describe('lib/index', () => {
   describe('#autoRefreshUpdated', () => {
 
     it('should do nothing if not ready', () => {
-      kuzzleCluster.node = {
+      cluster.node = {
         isReady: false,
         broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.autoRefreshUpdated();
-      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
+      cluster.autoRefreshUpdated();
+      should(cluster.node.broker.broadcast).have.callCount(0);
     });
 
     it('should do nothing if the request is invalid', () => {
-      kuzzleCluster.node = {
+      cluster.node = {
         isReady: true,
         broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.autoRefreshUpdated(new Request({body: {}}));
-      kuzzleCluster.autoRefreshUpdated(new Request({body: {autoRefresh: 'invalid'}}));
-      kuzzleCluster.autoRefreshUpdated(new Request({body: {autoRefresh: 42}}));
+      cluster.autoRefreshUpdated(new Request({body: {}}));
+      cluster.autoRefreshUpdated(new Request({body: {autoRefresh: 'invalid'}}));
+      cluster.autoRefreshUpdated(new Request({body: {autoRefresh: 42}}));
 
-      should(kuzzleCluster.node.broker.broadcast).have.callCount(0);
+      should(cluster.node.broker.broadcast).have.callCount(0);
     });
 
     it('should broadcast an ar diff', () => {
-      kuzzleCluster.node = {
+      cluster.node = {
         isReady: true,
         broker: {broadcast: sinon.spy()}
       };
 
-      kuzzleCluster.autoRefreshUpdated(new Request({index: 'index', body: {autoRefresh: true}}));
-      should(kuzzleCluster.node.broker.broadcast).be.calledOnce();
-      should(kuzzleCluster.node.broker.broadcast).be.calledWith('cluster:update', [{
+      cluster.autoRefreshUpdated(new Request({index: 'index', body: {autoRefresh: true}}));
+      should(cluster.node.broker.broadcast).be.calledOnce();
+      should(cluster.node.broker.broadcast).be.calledWith('cluster:update', [{
         ar: {i: 'index', v: true}
       }]);
     });
 
   });
 
-  describe('#resolveBindings', () => {
-    let
-      resolveBinding = KuzzleCluster.__get__('resolveBinding'),
-      revert;
+  describe('#profileUpdated', () => {
 
-    before(() => {
-      revert = KuzzleCluster.__set__({
-        _context: {
-          accessors: {
-            kuzzle: {config: {services:{internalBroker: {port: 999}}}}
-          }
-        }
-      });
+    it('should do nothing if not ready', () => {
+      cluster.node = {
+        isReady: false,
+        broker: {broadcast: sinon.spy()}
+      };
+
+      cluster.profileUpdated();
+      should(cluster.node.broker.broadcast).have.callCount(0);
     });
 
-    after(() => {
-      revert();
-    });
+    it('should broadcast a secPU diff', () => {
+      cluster.node = {
+        isReady: true,
+        broker: {broadcast: sinon.spy()}
+      };
 
-    it('should do its job', () => {
-      let response;
-
-      should(resolveBinding('host')).be.eql({host: 'host', port: 999});
-      should(resolveBinding('host:666')).be.eql({host: 'host', port: 666});
-      response = resolveBinding('[lo:ipv4]');
-      should(response.host).match(/^(\d+\.){3}\d+/);
-      should(response.port).be.exactly(999);
-
-      response = resolveBinding('[lo:ipv4]:666');
-      should(response.host).match(/^(\d+\.){3}\d+/);
-      should(response.port).be.exactly(666);
-
-      should(() => resolveBinding('[invalidiface:ipv4]')).throw('Invalid network interface provided [invalidiface]');
-      should(() => resolveBinding('[lo:invalid]')).throw('Invalid ip family provided [invalid] for network interface lo');
+      cluster.profileUpdated('diff');
+      should(cluster.node.broker.broadcast).be.calledOnce();
+      should(cluster.node.broker.broadcast).be.calledWith('cluster:update', [{
+        secPU: 'diff'
+      }]);
     });
 
   });
 
-  describe('#onLbMessage', () => {
-    let
-      onJoinedSpy = sandbox.spy(),
-      onLbMessage,
-      reset;
+  describe('#roleUpdated', () => {
 
-    beforeEach(() => {
-      reset = KuzzleCluster.__set__({
-        onJoinedLb: onJoinedSpy
-      });
-      onLbMessage = KuzzleCluster.__get__('onLbMessage');
-      kuzzleCluster.kuzzle = pluginContext.accessors.kuzzle;
+    it('should do nothing if not ready', () => {
+      cluster.node = {
+        isReady: false,
+        broker: {broadcast: sinon.spy()}
+      };
+
+      cluster.roleUpdated();
+      should(cluster.node.broker.broadcast).have.callCount(0);
     });
 
-    afterEach(() => {
-      reset();
+    it('should broadcast a srcRU diff', () => {
+      cluster.node = {
+        isReady: true,
+        broker: {broadcast: sinon.spy()}
+      };
+
+      cluster.roleUpdated('diff');
+      should(cluster.node.broker.broadcast).be.calledOnce();
+      should(cluster.node.broker.broadcast).be.calledWith('cluster:update', [{
+        secRU: 'diff'
+      }]);
+    });
+
+  });
+
+  describe('#refreshSpecifications', () => {
+
+    it('should do nothing if not ready', () => {
+      cluster.node = {
+        isReady: false,
+        broker: {broadcast: sinon.spy()}
+      };
+
+      cluster.refreshSpecifications();
+      should(cluster.node.broker.broadcast).have.callCount(0);
+    });
+
+    it('should broadcast a vu diff', () => {
+      cluster.node = {
+        isReady: true,
+        broker: {broadcast: sinon.spy()}
+      };
+
+      cluster.refreshSpecifications();
+      should(cluster.node.broker.broadcast).be.calledOnce();
+      should(cluster.node.broker.broadcast).be.calledWith('cluster:update', [{
+        vu: {}
+      }]);
+    });
+  });
+
+  describe('#resolveBindings', () => {
+    it('should do its job', () => {
+      let response;
+
+      should(cluster._resolveBinding('host')).be.eql({host: 'host', port: 999});
+      should(cluster._resolveBinding('host:666')).be.eql({host: 'host', port: 666});
+
+      response = cluster._resolveBinding('[lo:ipv4]');
+      should(response.host).match(/^(\d+\.){3}\d+/);
+      should(response.port).be.exactly(999);
+
+      response = cluster._resolveBinding('[lo:ipv4]:666');
+      should(response.host).match(/^(\d+\.){3}\d+/);
+      should(response.port).be.exactly(666);
+
+      should(() => cluster._resolveBinding('[invalidiface:ipv4]')).throw('Invalid network interface provided [invalidiface]');
+      should(() => cluster._resolveBinding('[lo:invalid]')).throw('Invalid ip family provided [invalid] for network interface lo');
+    });
+  });
+
+  describe('#onLbMessage', () => {
+    beforeEach(() => {
+      cluster._onJoinedLb = sinon.spy();
     });
 
     it('should call `onJoinedLb` on `joined` messages', () => {
       const msg = {action: 'joined', foo: 'bar'};
 
-      onLbMessage(kuzzleCluster, msg);
-      should(KuzzleCluster.__get__('onJoinedLb')).be.calledOnce();
-      should(onJoinedSpy).be.calledOnce();
-      should(onJoinedSpy).be.calledWithExactly(kuzzleCluster, msg);
-    });
-
-    it('should log the ack response', () => {
-      const msg = {action: 'ack', on: 'test'};
-
-      kuzzleCluster.kuzzle = pluginContext.accessors.kuzzle;
-
-      onLbMessage(kuzzleCluster, msg);
-      should(kuzzleCluster.kuzzle.pluginsManager.trigger)
+      cluster._onLbMessage(msg);
+      should(cluster._onJoinedLb)
         .be.calledOnce()
-        .be.calledWith('log:info',
-          '[cluster] ACK for test event received from LB');
+        .be.calledWith(msg);
     });
 
+    it('should throw if the msg type is unknown', () => {
+      return should(() => cluster._onLbMessage({
+        action: 'foo'
+      }))
+        .throw(InternalError);
+    });
   });
 
   describe('#onJoinedLb', () => {
-    const
-      onJoinedLb = KuzzleCluster.__get__('onJoinedLb');
 
     beforeEach(() => {
-      kuzzleCluster.config = {
+      cluster.config = {
         retryInterval: 2222
       };
-      kuzzleCluster.kuzzle = pluginContext.accessors.kuzzle;
-      kuzzleCluster.uuid = 'uuid';
-      kuzzleCluster.lbBroker = {send: sandbox.spy()};
+      cluster.uuid = 'uuid';
+      cluster.lbBroker = {send: sinon.spy()};
     });
 
     it('should destroy the node if it exists', () => {
       const
-        spy = sandbox.spy();
+        spy = sinon.spy();
 
-      kuzzleCluster.node = {detach: spy};
+      cluster.node = {detach: spy};
 
-      return onJoinedLb(kuzzleCluster, {
-        uuid: kuzzleCluster.uuid
+      return cluster._onJoinedLb({
+        uuid: cluster.uuid
       })
         .then(() => {
           should(spy).be.calledOnce();
@@ -415,57 +440,59 @@ describe('lib/index', () => {
     });
 
     it('should set a slave node if the master uuid is not itself', () => {
-      return onJoinedLb(kuzzleCluster, {
+      return cluster._onJoinedLb({
         uuid: 'master-uuid',
         host: 'master-host',
         port: 'master-port'
       })
         .then(() => {
-          should(kuzzleCluster.kuzzle.pluginsManager.trigger)
+          should(cluster.kuzzle.pluginsManager.trigger)
             .be.calledTwice()
             .be.calledWith('log:info', '[cluster] ready')
             .be.calledWith('log:info', '[cluster] uuid joined as SlaveNode on master-host:master-port');
-          should(kuzzleCluster.isMasterNode).be.exactly(false);
+          should(cluster.isMasterNode).be.exactly(false);
         });
     });
 
     it('should set a master node if the master uuid is itself', () => {
-      return onJoinedLb(kuzzleCluster, {
-        uuid: kuzzleCluster.uuid
+      return cluster._onJoinedLb({
+        uuid: cluster.uuid
       })
         .then(() => {
-          should(kuzzleCluster.kuzzle.pluginsManager.trigger)
+          should(cluster.kuzzle.pluginsManager.trigger)
             .be.calledTwice()
             .be.calledWith('log:info', '[cluster] ready')
             .be.calledWith('log:info', '[cluster] uuid joined as MasterNode on undefined:undefined');
-          should(kuzzleCluster.isMasterNode).be.exactly(true);
+          should(cluster.isMasterNode).be.exactly(true);
         });
     });
 
     it('should inform the broker if something went wrong with initing the node', () => {
       const
-        error = new Error('mine'),
-        reset = KuzzleCluster.__set__({
-          /** @constructor */
-          MasterNode: function MasterNode () {          // eslint-disable-line no-shadow
-            this.init = sandbox.stub().rejects(error);  // eslint-disable-line no-invalid-this
-          }
-        });
+        error = new Error('mine');
 
-      return onJoinedLb(kuzzleCluster, {
-        uuid: kuzzleCluster.uuid
+      mock('../../lib/cluster/masterNode', function () {
+        // eslint-disable-next-line no-invalid-this
+        this.init = sinon.stub().rejects(error);
+      });
+      const KuzzleCluster = mock.reRequire('../../lib/index');
+      cluster = new KuzzleCluster();
+      cluster.init({}, pluginContext);
+      cluster.lbBroker = {send: sinon.spy()};
+
+      return cluster._onJoinedLb({
+        uuid: cluster.uuid
       })
         .then(() => {
-          should(kuzzleCluster.kuzzle.pluginsManager.trigger).be.calledOnce();
-          should(kuzzleCluster.kuzzle.pluginsManager.trigger).be.calledWith('log:error');
-          should(kuzzleCluster.lbBroker.send).be.calledOnce();
-          should(kuzzleCluster.lbBroker.send).be.calledWith('cluster:status', {
+          should(cluster.kuzzle.pluginsManager.trigger).be.calledOnce();
+          should(cluster.kuzzle.pluginsManager.trigger).be.calledWith('log:error');
+          should(cluster.lbBroker.send).be.calledOnce();
+          should(cluster.lbBroker.send).be.calledWith('cluster:status', {
             status: 'error',
             code: 2,
-            msg: 'Error while initting the cluster node',
+            msg: 'Error while initiating cluster node',
             originalError: error
           });
-          reset();
         });
     });
 

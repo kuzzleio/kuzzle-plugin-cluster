@@ -14,6 +14,10 @@ export LB_VOLUME="[]"
 if [ "$LB_PATH" != "" ]; then
     export LB_VOLUME="- \"$(readlink -f ${LB_PATH})/docker-compose/config/pm2-dev.json:/config/pm2.json\"
       - \"$(readlink -f ${LB_PATH}):/var/app\""
+    if [ "$PROXY_PATH" != "" ]; then
+      export LB_VOLUME="${LB_VOLUME}
+      - \"$(readlink -f ${PROXY_PATH}):/var/app/node_modules/kuzzle-proxy\""
+    fi
 fi
 export LB_DEBUG="$LB_DEBUG"
 

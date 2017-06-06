@@ -5,21 +5,24 @@ This plugin adds a cluster mode to Kuzzle.
 
 ## Compatiblity
 
-The 1.1.x version of this plugin are compatible with Kuzzle v1.0.0-RC.9 and upper.
+The 1.1.x version of this plugin are compatible with the next-coming stable Kuzzle v1 branch.
+
+### Current development commits:
+
+* [kuzzle#5c40c61](https://github.com/kuzzleio/kuzzle/commits/5c40c61)
+* [kuzzle-proxy#7410364](https://github.com/kuzzleio/kuzzle-proxy/7410364)
+* [kuzzle-load-balancer#d88bb2e](https://github.com/kuzzleio/kuzzle-load-balancer/d88bb2e)
 
 ## How to set it up
-
-At the time this document is written, this plugin is working using the following dependencies:
-
-* Kuzzle: >= [1.0.0-RC9 release](https://github.com/kuzzleio/kuzzle/tree/1.0.0-RC9)
-* LB => [1.0.0-RC9 release](https://github.com/kuzzleio/kuzzle-load-balancer/tree/1.0.0-RC9)
 
 Step 1: Edit docker-compose/my.env file (cf docker-compose/my.env.sample), then:
 
 ```bash
 cd <dir>
-git clone -b 1.0.0-RC9 git@github.com:kuzzleio/kuzzle.git
-git clone -b 1.0.0-RC9 git@github.com:kuzzleio/kuzzle-load-balancer.git
+git clone -b <commit> git@github.com:kuzzleio/kuzzle.git
+# optional:
+git clone -b <commit> git@github.com:kuzzleio/kuzzle-proxy.git
+git clone -b <commit> git@github.com:kuzzleio/kuzzle-load-balancer.git
 git clone git@github.com:kuzzleio/kuzzle-plugin-cluster.git
 
 cd kuzzle-plugin-cluster
@@ -48,6 +51,6 @@ For more information on how to configure Kuzzle, [please refer to the Guide](htt
 
 ## Known bugs
 
-* MQ-based functional tests fail
+* Monkey tests fail after a couple of minutes on validation the subscriptions counts, most likely due to the cluster state propagation time (to be investigated).
 
 

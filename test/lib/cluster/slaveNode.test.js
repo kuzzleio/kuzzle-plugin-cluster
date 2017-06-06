@@ -1,10 +1,9 @@
 const
   Promise = require('bluebird'),
-  rewire = require('rewire'),
   should = require('should'),
   sinon = require('sinon'),
   Node = require('../../../lib/cluster/node'),
-  SlaveNode = rewire('../../../lib/cluster/slaveNode');
+  SlaveNode = require('../../../lib/cluster/slaveNode');
 
 describe('lib/cluster/slaveNode', () => {
   let
@@ -113,31 +112,21 @@ describe('lib/cluster/slaveNode', () => {
     });
 
     it('should properly close the client connection', () => {
-      const
-        clearTimeoutSpy = sinon.spy();
+      node.detach();
 
-      SlaveNode.__with__({
-        clearTimeout: clearTimeoutSpy
-      })(() => {
-        node.detach();
+      should(broker.onConnectHandlers)
+        .be.empty();
+      should(broker.onCloseHandlers)
+        .be.empty();
+      should(broker.onErrorHandlers)
+        .be.empty();
 
-        // pong listener should be removed
-        should(broker.client.socket.removeAllListeners)
-          .be.calledOnce()
-          .be.calledWith('pong');
+      // closing connection
+      should(broker.close)
+        .be.calledOnce();
 
-        // ping pong timer reset
-        should(clearTimeoutSpy)
-          .be.calledTwice();
-
-        // closing connection
-        should(broker.close)
-          .be.calledOnce();
-
-        should(node.broker)
-          .be.null();
-      });
-
+      should(node.broker)
+        .be.null();
     });
 
   });
@@ -170,7 +159,22 @@ describe('lib/cluster/slaveNode', () => {
               {idx: 2, coll: 'bar', f: 'doh'}
             ],
             hc: {
-              r: 'rooms',
+              r: {
+                r1: {
+                  id: 'r1',
+                  index: 'i1',
+                  collection: 'c1',
+                  channels: ['r1-a'],
+                  customers: ['cust1', 'cust2']
+                },
+                r2: {
+                  id: 'r2',
+                  index: 'i1',
+                  collection: 'c2',
+                  channels: ['r2-a', 'r2-b'],
+                  customers: ['cust3']
+                }
+              },
               c: 'customers'
             }
           }
@@ -178,7 +182,7 @@ describe('lib/cluster/slaveNode', () => {
       listenCB.call(node, msg);
 
       should(node.kuzzle.hotelClerk.rooms)
-        .be.eql(msg.data.hc.r);
+        .be.eql(node._unserializeRooms(msg.data.hc.r));
       should(node.kuzzle.hotelClerk.customers)
         .be.eql(msg.data.hc.c);
       should(node.kuzzle.dsl.storage.store)
