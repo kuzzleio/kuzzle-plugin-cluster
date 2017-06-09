@@ -27,7 +27,7 @@ services:
       - "./config/pm2-dev.json:/config/pm2.json"
     environment:
       - kuzzle_cluster__retryInterval=2000
-      - kuzzle_services__db__host=elasticsearch
+      - kuzzle_services__db__client__host=http://elasticsearch:9200
       - kuzzle_services__internalCache__node__host=redis
       - kuzzle_services__memoryStorage__node__host=redis
       - kuzzle_services__proxyBroker__host=loadbalancer
