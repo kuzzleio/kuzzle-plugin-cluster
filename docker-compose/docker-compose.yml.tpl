@@ -3,7 +3,7 @@ version: "2"
 services:
   loadbalancer:
     image: ${LB_IMAGE}
-    command: sh -c 'chmod 755 /var/app/docker-compose/scripts/run-dev.sh && /var/app/docker-compose/scripts/run-dev.sh'
+    command: sh -c 'cd /var/app && chmod 755 /var/app/docker-compose/scripts/run-dev.sh && /var/app/docker-compose/scripts/run-dev.sh'
     volumes:
       ${LB_VOLUME}
     ports:

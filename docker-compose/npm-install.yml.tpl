@@ -7,6 +7,7 @@ services:
       service: loadbalancer
     command: |
       sh -c '
+        cd /var/app
         set -ex
         rm -rf ./node_modules
         npm install

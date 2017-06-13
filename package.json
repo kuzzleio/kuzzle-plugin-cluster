@@ -26,7 +26,8 @@
   "dependencies": {
     "bluebird": "^3.4.1",
     "debug": "^2.6.1",
-    "kuzzle-common-objects": "^3.0.4"
+    "kuzzle-common-objects": "^3.0.4",
+    "uuid": "^3.0.1"
   },
   "devDependencies": {
     "eslint": "^2.11.1",
