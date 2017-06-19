@@ -24,6 +24,22 @@ describe('lib/index', () => {
 
     mock('../../lib/cluster/masterNode', MNode);
     mock('../../lib/cluster/slaveNode', SNode);
+    mock('os', {
+      networkInterfaces: () => {
+        return {
+          eth0: [{
+            address: '1.2.3.4',
+            netmask: '255.0.0.0',
+            family: 'IPv4'
+          }],
+          lo: [{
+            address: '127.0.0.1',
+            netmask: '255.0.0.0',
+            family: 'IPv4'
+          }]
+        };
+      }
+    });
     const KuzzleCluster = mock.reRequire('../../lib/index');
 
     pluginContext = {
@@ -390,6 +406,7 @@ describe('lib/index', () => {
 
       should(() => cluster._resolveBinding('[invalidiface:ipv4]')).throw('Invalid network interface provided [invalidiface]');
       should(() => cluster._resolveBinding('[lo:invalid]')).throw('Invalid ip family provided [invalid] for network interface lo');
+      should(() => cluster._resolveBinding('[lo.ipva]')).throw('Invalid binding pattern [lo.ipva]');
     });
   });
 
@@ -419,7 +436,8 @@ describe('lib/index', () => {
 
     beforeEach(() => {
       cluster.config = {
-        retryInterval: 2222
+        retryInterval: 2222,
+        initTimeout: 1000
       };
       cluster.uuid = 'uuid';
       cluster.lbBroker = {send: sinon.spy()};
@@ -469,11 +487,12 @@ describe('lib/index', () => {
 
     it('should inform the broker if something went wrong with initing the node', () => {
       const
+        processExit = sinon.stub(process, 'exit'),
         error = new Error('mine');
 
       mock('../../lib/cluster/masterNode', function () {
         // eslint-disable-next-line no-invalid-this
-        this.init = sinon.stub().rejects(error);
+        this.init = sinon.stub().returns(Bluebird.reject(error));
       });
       const KuzzleCluster = mock.reRequire('../../lib/index');
       cluster = new KuzzleCluster();
@@ -493,6 +512,8 @@ describe('lib/index', () => {
             msg: 'Error while initiating cluster node',
             originalError: error
           });
+          should(processExit).be.calledOnce();
+          should(processExit).be.calledWith(1);
         });
     });
 
