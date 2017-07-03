@@ -5,13 +5,7 @@ This plugin adds a cluster mode to Kuzzle.
 
 ## Compatiblity
 
-The 1.1.x version of this plugin are compatible with the next-coming stable Kuzzle v1 branch.
-
-### Current development commits:
-
-* [kuzzle#5c40c61](https://github.com/kuzzleio/kuzzle/commits/5c40c61)
-* [kuzzle-proxy#7410364](https://github.com/kuzzleio/kuzzle-proxy/7410364)
-* [kuzzle-load-balancer#d88bb2e](https://github.com/kuzzleio/kuzzle-load-balancer/d88bb2e)
+see [Release description](https://github.com/kuzzleio/kuzzle-plugin-cluster/releases)
 
 ## How to set it up
 
