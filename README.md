@@ -5,26 +5,26 @@ This plugin adds a cluster mode to Kuzzle.
 
 ## Compatiblity
 
-The 1.1.x version of this plugin are compatible with Kuzzle v1.0.0-RC.9 and upper.
+see [Release description](https://github.com/kuzzleio/kuzzle-plugin-cluster/releases)
 
 ## How to set it up
 
-At the time this document is written, this plugin is working using the following dependencies:
-
-* Kuzzle: >= [1.0.0-RC9 release](https://github.com/kuzzleio/kuzzle/tree/1.0.0-RC9)
-* LB => [1.0.0-RC9 release](https://github.com/kuzzleio/kuzzle-load-balancer/tree/1.0.0-RC9)
+Step 1: Edit docker-compose/my.env file (cf docker-compose/my.env.sample), then:
 
 ```bash
 cd <dir>
-git clone -b 1.0.0-RC9 git@github.com:kuzzleio/kuzzle.git
-git clone -b 1.0.0-RC9 git@github.com:kuzzleio/kuzzle-load-balancer.git
+git clone -b <commit> git@github.com:kuzzleio/kuzzle.git
+# optional:
+git clone -b <commit> git@github.com:kuzzleio/kuzzle-proxy.git
+git clone -b <commit> git@github.com:kuzzleio/kuzzle-load-balancer.git
 git clone git@github.com:kuzzleio/kuzzle-plugin-cluster.git
 
 cd kuzzle-plugin-cluster
 cp docker-compose/my.env.sample docker-compose/my.env
 vim docker-compose/my.env
 
-./run-debug.sh
+./run-npm-install.sh
+./run.sh
 ```
 
 You should now have a full Kuzzle clustered stack running 3 Kuzzle front nodes (and 3 servers).
@@ -45,6 +45,6 @@ For more information on how to configure Kuzzle, [please refer to the Guide](htt
 
 ## Known bugs
 
-* MQ-based functional tests fail
+* Monkey tests fail after a couple of minutes on validation the subscriptions counts, most likely due to the cluster state propagation time (to be investigated).
 
 

@@ -1,6 +1,6 @@
 {
   "name": "kuzzle-plugin-cluster",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Enterprise only - enables Kuzzle cluster mode",
   "main": "./lib/index.js",
   "scripts": {
@@ -25,17 +25,17 @@
   "homepage": "https://github.com/kuzzleio/kuzzle-plugin-cluster#readme",
   "dependencies": {
     "bluebird": "^3.4.1",
-    "kuzzle-common-objects": "^2.1.0",
-    "lodash": "^4.13.1"
+    "debug": "^2.6.1",
+    "kuzzle-common-objects": "^3.0.4",
+    "uuid": "^3.0.1"
   },
   "devDependencies": {
     "eslint": "^2.11.1",
     "istanbul": "^0.4.3",
     "mocha": "^2.5.3",
-    "rewire": "^2.5.1",
+    "mock-require": "^2.0.2",
     "should": "^9.0.0",
     "should-sinon": "0.0.5",
-    "sinon": "^1.17.4",
-    "sinon-as-promised": "^4.0.0"
+    "sinon": "^1.17.4"
   }
 }
