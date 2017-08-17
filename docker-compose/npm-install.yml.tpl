@@ -1,30 +1,25 @@
 version: '2'
 
 services:
-  loadbalancer:
-    extends:
-      file: docker-compose.yml
-      service: loadbalancer
-    command: |
-      sh -c '
-        cd /var/app
-        set -ex
-        rm -rf ./node_modules
-        npm install
-      '
-
   kuzzle:
     extends:
       file: docker-compose.yml
       service: kuzzle
     command: |
-      sh -c '
-        set -ex
+      bash -c '
         rm -rf ./node_modules
-        rm -rf plugins/*/enabled/node_modules
         npm install
-        for plugin in plugins/enabled/*/; do
+        rm -rf /var/app/plugins/*/enabled/node_modules
+        for p in /var/app/plugins/enabled/*/; do echo $p; done
+        for plugin in /var/app/plugins/enabled/*/ ; do
+          echo "$plugin"
           cd "$plugin"
+          npm install
+          cd /var/app
+        done
+        rm -rf protocols/*/enabled/node_modules
+        for protocols in protocols/enabled/*/; do
+          cd "$protocol"
           npm install
           cd /var/app
         done
