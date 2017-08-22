@@ -520,7 +520,7 @@ describe('index', () => {
             should(cluster.node._syncState)
               .be.calledOnce();
             should(cluster.node.broadcast)
-              .be.calledWith('cluster:sync', {event: 'subscriptions'})
+              .be.calledWith('cluster:sync', {event: 'subscriptions'});
           });
       });
     });

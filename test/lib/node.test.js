@@ -351,7 +351,7 @@ describe('node', () => {
       node._removeNode('foo');
 
       should(node.ready)
-        .be.false;
+        .be.false();
       should(node.broadcast)
         .be.calledWith('cluster:remove', node.uuid);
       should(node.join)
@@ -463,7 +463,7 @@ describe('node', () => {
       };
       node._sync(data);
       should(node._syncState)
-        .be.calledWith(data)
+        .be.calledWith(data);
     });
 
     it('validators', () => {
