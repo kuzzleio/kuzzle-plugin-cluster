@@ -41,12 +41,13 @@ if room_json then
             end
         end
 
-        local room_json = cjson.encode(room)
-        table.insert(debug, 'room ' .. room_json)
-        redis.call('SET', 'cluster:hc:rooms:' .. room_id, room_json)
-
         if found then
+            local room_json = cjson.encode(room)
+            table.insert(debug, 'room ' .. room_json)
+            redis.call('SET', 'cluster:hc:rooms:' .. room_id, room_json)
             table.insert(debug, 'removing user')
+        else
+            table.insert(debug, 'customer not found in room')
         end
     end
 end

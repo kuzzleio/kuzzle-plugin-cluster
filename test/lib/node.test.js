@@ -226,18 +226,6 @@ describe('node', () => {
       should(node.sockets.router.send)
         .be.calledWith(['envelope', JSON.stringify(['remoteSub', true])]);
     });
-
-    it('ready', () => {
-      node.broadcast = sinon.spy();
-      node._addNode = sinon.spy();
-      node._onRouterMessage('envelope', JSON.stringify(['ready', 'data']));
-
-      should(node._addNode)
-        .be.calledWith('data');
-      should(node.broadcast)
-        .be.calledWith('cluster:join', 'data');
-    });
-
   });
 
   describe('#_onSubMessage', () => {

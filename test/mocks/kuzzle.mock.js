@@ -3,6 +3,16 @@ const
 
 class KuzzleMock {
   constructor () {
+    this.config = {
+      services: {
+        internalCache: {
+          node: {
+            host: 'redis'
+          }
+        }
+      }
+    };
+
     this.dsl = {
       storage: {
         filtersIndex: {},
