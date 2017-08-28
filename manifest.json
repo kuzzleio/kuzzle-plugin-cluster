@@ -1,0 +1,4 @@
+{
+  "name": "cluster",
+  "privileged": true
+}

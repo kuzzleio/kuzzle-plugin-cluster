@@ -1,11 +1,11 @@
 {
-  "name": "kuzzle-plugin-cluster",
-  "version": "2.0.0",
+  "name": "cluster",
+  "version": "3.0.0",
   "description": "Enterprise only - enables Kuzzle cluster mode",
   "main": "./lib/index.js",
   "scripts": {
     "test": "npm run --silent lint && npm run --silent unit-test",
-    "unit-test": "istanbul cover _mocha",
+    "unit-test": "nyc -r lcov -r text-summary _mocha",
     "lint": "eslint --max-warnings=0 ./lib ./test"
   },
   "repository": {
@@ -24,18 +24,22 @@
   },
   "homepage": "https://github.com/kuzzleio/kuzzle-plugin-cluster#readme",
   "dependencies": {
-    "bluebird": "^3.4.1",
-    "debug": "^2.6.1",
-    "kuzzle-common-objects": "^3.0.4",
-    "uuid": "^3.0.1"
+    "bluebird": "^3.5.0",
+    "debug": "^3.0.0",
+    "ioredis": "^3.1.4",
+    "ip": "^1.1.5",
+    "kuzzle-common-objects": "^3.0.5",
+    "lodash": "^4.17.4",
+    "request": "^2.81.0",
+    "zmq": "^2.15.3"
   },
   "devDependencies": {
-    "eslint": "^2.11.1",
-    "istanbul": "^0.4.3",
-    "mocha": "^2.5.3",
+    "eslint": "4.5.0",
+    "mocha": "^3.4.2",
     "mock-require": "^2.0.2",
-    "should": "^9.0.0",
+    "nyc": "^11.1.0",
+    "should": "^11.2.1",
     "should-sinon": "0.0.5",
-    "sinon": "^1.17.4"
+    "sinon": "^3.2.1"
   }
 }
