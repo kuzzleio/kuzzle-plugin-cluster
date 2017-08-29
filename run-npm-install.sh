@@ -9,7 +9,7 @@ _exit() {
     docker-compose -f "$COMPOSE_FILE" stop
 }
 
-trap _exit SIGINT SIGTERM
+trap _exit SIGINT SIGTERM EXIT
 
 . ./build-compose.sh
 
@@ -36,6 +36,7 @@ trap _exit SIGINT SIGTERM
 docker-compose -p cluster -f "$COMPOSE_FILE" kill
 docker-compose -p cluster -f "$COMPOSE_FILE" scale kuzzle=1
 docker-compose -p cluster -f "$COMPOSE_FILE" rm -fv 2> /dev/null
+docker-compose -p cluster -f "$COMPOSE_FILE" build
 docker-compose -p cluster -f "$COMPOSE_FILE" up
 
 

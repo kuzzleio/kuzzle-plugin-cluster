@@ -4,7 +4,7 @@
     "script"       : "bin/kuzzle",
     "args"         : ["start"],
     "watch"        : ["lib/**/*.js", "plugins/enabled/**/*.js", "/var/kuzzle-load-balancer/lib/**/*.js"],
-    "ignore_watch" : ["node_modules"],
-    "node_args": "--debug=7000"
+    "ignore_watch" : ["node_modules", "coverage"],
+    "node_args": "--inspect=7000"
   }]
 }
