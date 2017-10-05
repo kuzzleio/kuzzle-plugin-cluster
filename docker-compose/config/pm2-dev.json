@@ -1,9 +1,10 @@
 {
   "apps": [{
-    "name"         : "KuzzleServer",
+    "name"         : "kuzzle",
     "script"       : "bin/kuzzle",
+    "cwd"          : "/var/app",
     "args"         : ["start"],
-    "watch"        : ["lib/**/*.js", "plugins/enabled/**/*.js", "/var/kuzzle-load-balancer/lib/**/*.js"],
+    "watch"        : ["lib/**/*.js", "plugins/enabled/**/*.js"],
     "ignore_watch" : ["node_modules", "coverage"],
     "node_args": "--inspect=7000"
   }]

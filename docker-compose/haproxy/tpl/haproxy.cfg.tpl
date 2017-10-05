@@ -27,7 +27,7 @@ frontend kuzzle
   default_backend kuzzle
 
 backend kuzzle
-  # * http: prefer "rounrdrobin"
+  # * http: prefer "roundrobin"
   # * socket.io: either disable long polling transport on client side or switch
   #   to "source" balancing
   balance leastconn

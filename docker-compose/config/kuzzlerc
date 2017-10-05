@@ -1,0 +1,71 @@
+{
+  "dump": {
+    "enabled": false
+  },
+  "limits": {
+    "subscriptionMinterms": 200
+  },
+  "plugins": {
+    "common": {
+      "initTimeout": 20000,
+      "pipeWarnTime": 5000,
+      "pipeTimeout": 10000
+    },
+    "cluster": {
+      "privileged": true,
+      "minimumNodes": 2
+    },
+    "kuzzle-plugin-logger": {
+      "threads": false
+    }
+  },
+  "services": {
+    "db": {
+      "client": {
+        "host": "http://elasticsearch:9200"
+      }
+    },
+    "internalCache": {
+      "database": 0,
+      "nodes": [
+        {
+          "host": "cluster_redis_1",
+          "port": 6379
+        },
+        {
+          "host": "cluster_redis_2",
+          "port": 6379
+        },
+        {
+          "host": "cluster_redis_3",
+          "port": 6379
+        }
+      ]
+    },
+    "memoryStorage": {
+      "database": 0,
+      "nodes": [
+        {
+          "host": "cluster_redis_1",
+          "port": 6379
+        },
+        {
+          "host": "cluster_redis_2",
+          "port": 6379
+        },
+        {
+          "host": "cluster_redis_3",
+          "port": 6379
+        }
+      ]
+    },
+    "internalBroker": {
+      "socket": false,
+      "port": 7513
+    }
+  },
+  "server": {
+    "accessLogIpOffset": 1
+  }
+}
+
