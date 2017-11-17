@@ -3,7 +3,7 @@
     "enabled": false
   },
   "limits": {
-    "subscriptionMinterms": 500
+    "subscriptionMinterms": 1000
   },
   "plugins": {
     "common": {
