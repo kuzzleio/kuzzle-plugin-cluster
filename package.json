@@ -1,6 +1,6 @@
 {
   "name": "cluster",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Enterprise only - enables Kuzzle cluster mode",
   "main": "./lib/index.js",
   "scripts": {
@@ -31,6 +31,7 @@
     "kuzzle-common-objects": "^3.0.5",
     "lodash": "^4.17.4",
     "request": "^2.81.0",
+    "uuid": "^3.1.0",
     "zmq": "^2.15.3"
   },
   "devDependencies": {

@@ -1,76 +1,35 @@
-local index = KEYS[1]
-local collection = KEYS[2]
-local room_id = KEYS[3]
-local connection_id = KEYS[4]
-local in_room_json = ARGV[1]
-local in_customer_json = ARGV[2]
-local in_filter_json = ARGV[3]
+local hash_tag = KEYS[1]
 
-local debug = {table.concat({index, collection, room_id}, '/')}
+local node_id = ARGV[1]
+local room_id = ARGV[2]
+local connection_id = ARGV[3]
+local in_filter_json = ARGV[4]
 
+local count
+local debug = {}
+
+-- register filter
 if in_filter_json ~= 'none' then
-    table.insert(debug, 'inserting filters')
-    redis.call('SET', 'cluster:filters:' .. room_id, in_filter_json, 'EX', 15)
+    table.insert(debug, 'inserting filter ' .. hash_tag .. room_id)
+    redis.call('SET', 'cluster:filters:' .. hash_tag .. room_id, in_filter_json)
+    redis.call('SADD', 'cluster:filters_tree' .. hash_tag, room_id)
 end
 
-local room_json = redis.call('GET', 'cluster:hc:rooms:' .. room_id)
-if room_json then
-    table.insert(debug, 'room found')
+-- attach client to room
+redis.call('SADD', 'cluster:room_clients:'  .. hash_tag .. room_id, connection_id)
+count = redis.call('SCARD', 'cluster:room_clients:' .. hash_tag .. room_id)
+redis.call('SET', 'cluster:room_counts:' .. hash_tag .. room_id, count)
 
-    local redis_room = cjson.decode(room_json)
-    local in_room = cjson.decode(in_room_json)
+-- attach room to <node, client>
+redis.call('SADD', 'cluster:node_clients:' .. hash_tag .. node_id, connection_id)
+redis.call('SADD', 'cluster:client_rooms:' .. hash_tag .. connection_id, room_id)
 
-    -- make sure new channels are populated
-    for channel in pairs(in_room.channels) do
-        redis_room.channels[channel] = in_room.channels[channel]
-    end
 
-    local found = false
-    for _,cid in ipairs(redis_room.customers) do
-        if cid == connection_id then
-            found = true
-            break
-        end
-    end
-
-    if found == false then
-        table.insert(debug, 'adding connection ' .. connection_id)
-        table.insert(redis_room.customers, connection_id)
-    end
-
-    local room_json = cjson.encode(redis_room)
-    table.insert(debug, 'updating room: ' .. room_json)
-    redis.call('SET', 'cluster:hc:rooms:' .. room_id, room_json)
-else
-    table.insert(debug, 'creating room ' .. in_room_json)
-    redis.call('SET', 'cluster:hc:rooms:' .. room_id, in_room_json)
+local version = redis.call('INCR', 'cluster:version' .. hash_tag)
+-- handle signed 64 bits overflows
+if version >= 9223372036854775807 then
+    version = 1
+    redis.call('SET', 'cluster:version' .. hash_tag, version)
 end
 
-local customer_json = redis.call('GET', 'cluster:hc:customers:' .. connection_id)
-if customer_json then
-    table.insert(debug, 'customer found ' .. connection_id)
-    local redis_customer = cjson.decode(customer_json)
-
-    if redis_customer[room_id] == nil then
-        local in_customer = cjson.decode(in_customer_json)
-        redis_customer[room_id] = in_customer[room_id]
-
-        local redis_customer_json = cjson.encode(redis_customer)
-        redis.call('SET', 'cluster:hc:customers:' .. connection_id, redis_customer_json)
-    end
-else
-    redis.call('SET', 'cluster:hc:customers:' .. connection_id, in_customer_json)
-end
-
-redis.call('SADD', 'cluster:hc:room_ids', room_id)
-local added = redis.call('SADD', table.concat({'cluster:hc:room_id_tree', index, collection}, ':'), room_id)
-if added > 0 then
-    redis.call('INCR', table.concat({'cluster:hc:room_id_tree_count', index, collection}, ':'))
-end
-redis.call('SADD', 'cluster:hc:customer_ids', connection_id)
-added = redis.call('SADD', table.concat({'cluster:hc:customer_id_tree', index, collection}, ':'), connection_id)
-if added > 0 then
-    redis.call('INCR', table.concat({'cluster:hc:customer_id_tree_count', index, collection}, ':'))
-end
-
-return debug
+return {version, count, debug}

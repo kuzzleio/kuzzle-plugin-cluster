@@ -28,10 +28,10 @@ services:
 
   haproxy:
     image: haproxy:1.7-alpine
-    command: ash -c 'touch /var/run/haproxy.pid; tail -f /dev/null'
+    command: sh -c 'exec tail -f /dev/null'
     container_name: haproxy
     ports:
-      - 7512:7512
+      - 7513:7512
       - 7575:7575
     labels:
       consul.skip: "true"
@@ -39,51 +39,60 @@ services:
       - haproxy:/usr/local/etc/haproxy
 
   consultemplate:
-    image: kuzzleio/consul-template
+    image: kuzzleio/consul-template:0.19
     depends_on:
       - consul
       - haproxy
+      - nginx
     command: >
-      -consul consul:8500
+      -consul-addr consul:8500
       -template /templates/haproxy/haproxy.cfg.tpl:/usr/local/etc/haproxy/haproxy.cfg:reload-haproxy.sh
+      -template /templates/nginx/kuzzle.conf.tpl:/usr/local/etc/nginx/kuzzle.conf:reload-nginx.sh
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./haproxy/tpl:/templates/haproxy
       - ./haproxy/reload-haproxy.sh:/usr/local/bin/reload-haproxy.sh
-      - /var/run/docker.sock:/var/run/docker.sock
       - haproxy:/usr/local/etc/haproxy
+      - ./nginx/tpl:/templates/nginx
+      - ./nginx/reload-nginx.sh:/usr/local/bin/reload-nginx.sh
+      - nginx:/usr/local/etc/nginx
+
+  nginx:
+    image: nginx:1.13-alpine
+    container_name: nginx
+    ports:
+      - 7512:7512
+    labels:
+      consul.skip: "true"
+    volumes:
+      - nginx:/etc/nginx/conf.d
 
   kuzzle:
     build: ./images/kuzzle
     command: sh -c 'chmod 755 /scripts/run.sh && /scripts/run.sh'
     volumes:
       ${KUZ_VOLUME}
-      - "..:/var/app/plugins/enabled/cluster"
-      - "./scripts:/scripts"
-      - "./config/pm2-dev.json:/config/pm2.json"
+      - ..:/var/app/plugins/enabled/cluster
+      - ./scripts:/scripts
+      - ./config/pm2-dev.json:/config/pm2.json
+      - ./config/kuzzlerc:/etc/kuzzlerc
     labels:
       consul.service: kuzzle
     environment:
-      kuzzle_dump__enabled: "false"
-      kuzzle_services__db__client__host: http://elasticsearch:9200
-      kuzzle_services__internalCache__node__host: redis
-      kuzzle_services__memoryStorage__node__host: redis
-      kuzzle_plugins__kuzzle-plugin-logger__threads: "false"
-      kuzzle_services__internalBroker__socket: "false"
-      kuzzle_services__internalBroker__port: 7513
-      kuzzle_server__logs__accessLogIpOffset: 1
-      kuzzle_plugins__common__initTimeout: 20000
-      kuzzle_plugins__cluster__privileged: "true"
-      kuzzle_plugins__cluster__discover__node1: "tcp://cluster_kuzzle_1:7510"
-      kuzzle_plugins__cluster__discover__node2: "tcp://cluster_kuzzle_2:7510"
-      kuzzle_plugins__cluster__minimumNodes: 2
       NODE_ENV: ${DOLLAR}{NODE_ENV:-development}
-      DEBUG: ${DOLLAR}{DEBUG:-kuzzle:cluster*,-kuzzle:cluster:merge,-kuzle:cluster:notify}
+      DEBUG: ${DOLLAR}{DEBUG:-kuzzle:cluster*,-kuzle:cluster:notify}
       DEBUG_COLORS: ${DOLLAR}{DEBUG_COLORS:-on}
 
   redis:
-    image: redis:3.2
-    ports:
-      - "6379:6379"
+    build: ./redis
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  redis_init_cluster:
+    build: ./redis-cluster-init
+    depends_on:
+      - redis
+    command: cluster_redis_1 cluster_redis_2 cluster_redis_3
+
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:5.4.1
@@ -96,4 +105,5 @@ services:
       xpack.watcher.enabled: "false"
 
 volumes:
-   haproxy:
+  nginx:
+  haproxy:
