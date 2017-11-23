@@ -31,7 +31,7 @@ describe('index', () => {
 
   describe('#init', () => {
     it('should init the cluster with given config', () => {
-      cluster._resolveBinding = sinon.stub().returnsArg(0);
+      cluster.constructor._resolveBinding = sinon.stub().returnsArg(0);
 
       const response = cluster.init({
         foo: 'bar',
@@ -62,16 +62,18 @@ describe('index', () => {
           timers: {
             discoverTimeout: 3000,
             joinAttemptInterval: 2000,
-            heartbeat: 5000
+            heartbeat: 5000,
+            waitForMissingRooms: 4500
           }
         });
 
       should(cluster.redis)
         .be.an.instanceof(RedisMock);
       should(cluster.redis.defineCommand)
+        .be.calledWith('clusterCleanNode')
+        .be.calledWith('clusterState')
         .be.calledWith('clusterSubOn')
-        .be.calledWithMatch('clusterSubOff')
-        .be.calledWith('clusterReset');
+        .be.calledWith('clusterSubOff');
     });
 
   });
@@ -82,12 +84,18 @@ describe('index', () => {
       cluster.node.ready = true;
     });
 
-    it('all hooks except kuzzlestart and room creation should do nothing if the cluster node is not ready', () => {
-
+    it('most hooks should do nothing if the cluster node is not ready', () => {
       for (const event of Object.keys(cluster.hooks)) {
         const hook = cluster.hooks[event];
 
-        if (hook === 'kuzzleStarted' || hook === 'roomBeingCreated') {
+        if ([
+          'kuzzleStarted',
+          'roomBeingCreated',
+          'roomCreated',
+          'roomDeleted',
+          'unlockCreateRoom',
+          'unlockDeleteRoom'
+        ].indexOf(hook) > -1) {
           continue;
         }
 
@@ -102,8 +110,6 @@ describe('index', () => {
         should(debug)
           .be.calledOnce()
           .be.calledWithMatch(/^\[.*?\]\[warning\] could not broadcast/);
-
-
       }
     });
 
@@ -118,7 +124,7 @@ describe('index', () => {
           }
         }))
           .then(() => {
-            should(cluster.hooks['index:beforeSetAutoRefresh'])
+            should(cluster.hooks['index:afterSetAutoRefresh'])
               .eql('autoRefreshUpdated');
 
             should(cluster.redis.hset)
@@ -126,9 +132,7 @@ describe('index', () => {
 
             should(cluster.node.broadcast)
               .be.calledWith('cluster:sync', {
-                event: 'autorefresh',
-                index: 'index',
-                value: true
+                event: 'autorefresh'
               });
           });
       });
@@ -192,7 +196,7 @@ describe('index', () => {
       });
     });
 
-    describe('notify', () => {
+    describe('#notify', () => {
       it('should broadcast the notification', () => {
         should(cluster.hooks['core:notify:dispatch'])
           .eql('notify');
