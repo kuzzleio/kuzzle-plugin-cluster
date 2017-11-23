@@ -12,17 +12,21 @@ services:
       bash -c '
         rm -rf ./node_modules
         npm install
-        rm -rf /var/app/plugins/*/enabled/node_modules
-        for p in /var/app/plugins/enabled/*/; do echo $p; done
+        echo
+        echo "plugins"
+        rm -rf ./plugins/enabled/*/node_modules
+        for p in /var/app/plugins/enabled/*/; do echo ${DOLLAR}${DOLLAR}p; done
         for plugin in /var/app/plugins/enabled/*/ ; do
-          echo "$plugin"
-          cd "$plugin"
+          echo "${DOLLAR}${DOLLAR}plugin"
+          cd "${DOLLAR}${DOLLAR}plugin"
           npm install
           cd /var/app
         done
-        rm -rf protocols/*/enabled/node_modules
-        for protocols in protocols/enabled/*/; do
-          cd "$protocol"
+        echo
+        echo "protocols"
+        rm -rf protocols/enabled/*/node_modules
+        for protocol in protocols/enabled/*/; do
+          cd "${DOLLAR}${DOLLAR}protocol"
           npm install
           cd /var/app
         done

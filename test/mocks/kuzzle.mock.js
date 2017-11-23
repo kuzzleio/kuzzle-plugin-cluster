@@ -21,6 +21,12 @@ class KuzzleMock {
       }
     };
 
+    this.funnel = {
+      controllers: {
+        realtime: { }
+      }
+    };
+
     this.hotelClerk = {
       customers: {},
       rooms: {},
@@ -41,6 +47,10 @@ class KuzzleMock {
       registerStrategy: sinon.spy(),
       strategies: {},
       unregisterStrategy: sinon.spy()
+    };
+
+    this.realtime = {
+      storage: {}
     };
 
     this.repositories = {

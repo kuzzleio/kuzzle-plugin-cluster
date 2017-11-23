@@ -28,7 +28,6 @@ trap _exit SIGINT SIGTERM EXIT
   if [ "$KUZ_PATH" != "" ]; then
     export KUZ_VOLUME="- \"$(readlink -f ${KUZ_PATH}):/var/app\""
   fi
-  export KUZ_LB_VOLUME="- \"$(readlink -f ${LB_PATH}):/var/kuzzle-load-balancer\""
 
   envsubst < "$COMPOSE_FILE.tpl" > "$COMPOSE_FILE"
 )
