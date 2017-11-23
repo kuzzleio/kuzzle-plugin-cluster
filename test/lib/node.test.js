@@ -25,12 +25,17 @@ describe('node', () => {
         }
       },
       kuzzle: new KuzzleMock(),
-      log: sinon.spy(),
       redis: new RedisMock(),
-      uuid: 'uuid'
+      uuid: 'uuid',
+
+      cleanNode: sinon.stub().returns(Bluebird.resolve()),
+      deleteRoomCount: sinon.spy(),
+      log: sinon.spy(),
+      setRoomCount: sinon.spy(),
     };
 
-    mockRequire('zmq', zmqMock);
+    mockRequire('zeromq', zmqMock);
+    mockRequire('ioredis', RedisMock);
     const Node = mockRequire.reRequire('../../lib/node');
     node = new Node(cluster);
   });
@@ -89,6 +94,7 @@ describe('node', () => {
     it('should add nodes retrieved from redis', () => {
       node._addNode = sinon.spy();
 
+      node.redis.scan.onFirstCall().returns(Bluebird.resolve(['cursor', ['k1', 'k2', 'k3']]));
       node.redis.smembers = sinon.stub().returns(Bluebird.resolve(['"foo"', '"bar"']));
 
       return node.discover()
@@ -103,18 +109,11 @@ describe('node', () => {
   });
 
   describe('#init', () => {
-    it('should inject the getState script in redis, register itself as a discoverable node, init heartbeat and join the cluster', () => {
+    it('should register itself as a discoverable node, init heartbeat and join the cluster', () => {
       node.join = sinon.spy();
 
       return node.init()
         .then(() => {
-          should(node.redis.defineCommand)
-            .be.calledOnce()
-            .be.calledWith('clusterState');
-
-          should(node.redis.sadd)
-            .be.calledWith('cluster:discovery');
-
           should(node.sockets.pub.bind)
             .be.calledOnce()
             .be.calledWith('pub-href');
@@ -134,6 +133,14 @@ describe('node', () => {
       node.discover = sinon.stub().returns(Bluebird.resolve());
       node._remoteSub = sinon.stub().returns(Bluebird.resolve());
       node._syncState = sinon.stub().returns(Bluebird.resolve());
+      node.redis.clusterState.returns(Bluebird.resolve([
+        '42',
+        [
+          ['r1', JSON.stringify({index: 'i1', collection: 'c1', filters: 'f1'}), 1],
+          ['r2', JSON.stringify({index: 'i2', collection: 'c2', filters: 'f2'}), 2],
+        ]
+      ]));
+      node.redis.smembers.returns(Bluebird.resolve(['k1', 'k2', 'k3']));
 
       node.pool = {
         foo: {router: 'foo-router'},
@@ -155,11 +162,8 @@ describe('node', () => {
         .then(() => {
           should(node._remoteSub)
             .be.calledTwice()
-            .be.calledWith('foo-router')
-            .be.calledWith('bar-router');
-
-          should(node._syncState)
-            .be.calledOnce();
+            .be.calledWith({router: 'foo-router'})
+            .be.calledWith({router: 'bar-router'});
 
           should(node.broadcast)
             .be.calledOnce()
@@ -168,6 +172,15 @@ describe('node', () => {
     });
 
     it('should keep retrying if the corum is not reached', () => {
+      node.redis.clusterState.returns(Bluebird.resolve([
+        '42',
+        [
+          ['r1', JSON.stringify({index: 'i1', collection: 'c1', filters: 'f1'}), 1],
+          ['r2', JSON.stringify({index: 'i2', collection: 'c2', filters: 'f2'}), 2],
+        ]
+      ]));
+      node.redis.smembers.returns(Bluebird.resolve(['k1', 'k2', 'k3']));
+
       cluster.config.retryJoin = 3;
       cluster.config.minimumNodes = 9;
 
@@ -181,7 +194,7 @@ describe('node', () => {
 
   describe('#_addNode', () => {
     it('should not add itself', () => {
-      node._addNode({pub: node.uuid});
+      node._addNode({pub: node.config.bindings.pub.href});
 
       should(node.sockets.sub.connect)
         .have.callCount(0);
@@ -196,16 +209,17 @@ describe('node', () => {
     });
 
     it('should register the node', () => {
+      const remoteNode = {pub: 'foo'};
       node._heartbeat = sinon.spy();
 
-      node._addNode({pub: 'foo'});
+      node._addNode(remoteNode);
 
       should(node.sockets.sub.connect)
         .be.calledWith('foo');
       should(node._heartbeat)
-        .be.calledWith('foo');
+        .be.calledWith(remoteNode);
       should(node.pool.foo)
-        .eql({pub: 'foo'});
+        .eql(remoteNode);
     });
   });
 
@@ -236,14 +250,27 @@ describe('node', () => {
         .be.calledWith('data');
     });
 
-    it('cluster:notify', () => {
-      node._onSubMessage(JSON.stringify(['cluster:notify', {
-        channels: 'channels',
-        notification: 'notification',
-        connectionId: 'connectionId'
+    it('cluster:notify:document', () => {
+      node._onSubMessage(JSON.stringify(['cluster:notify:document', {
+        rooms: 'rooms',
+        request: {
+          data: {foo: 'bar'},
+          options: {options: true},
+        },
+        scope: 'scope',
+        state: 'state',
+        action: 'action',
+        content: 'content'
       }]));
-      should(node.kuzzle.notifier._dispatch)
-        .be.calledWith('channels', 'notification', 'connectionId', false);
+      should(node.kuzzle.notifier._notifyDocument)
+        .be.calledWithMatch(
+          'rooms',
+          {},
+          'scope',
+          'state',
+          'action',
+          'content'
+        );
     });
 
     it('cluster:ready', () => {
@@ -274,17 +301,17 @@ describe('node', () => {
 
     it('cluster:remove', () => {
       node._removeNode = sinon.spy();
-      node._onSubMessage(JSON.stringify(['cluster:remove', 'data']));
+      node._onSubMessage(JSON.stringify(['cluster:remove', {pub: 'pub'}]));
 
       should(node._removeNode)
-        .be.calledWith('data');
+        .be.calledWith('pub');
     });
 
     it('cluster:sync', () => {
-      node._sync = sinon.spy();
+      node.sync = sinon.spy();
       node._onSubMessage(JSON.stringify(['cluster:sync', 'data']));
 
-      should(node._sync)
+      should(node.sync)
         .be.calledWith('data');
     });
 
@@ -313,7 +340,8 @@ describe('node', () => {
     it('should remove the given node', () => {
       node.pool = {
         foo: {
-          heartbeat: null
+          heartbeat: null,
+          pub: 'foo'
         }
       };
 
@@ -327,6 +355,14 @@ describe('node', () => {
     });
 
     it('should kill itself is the corum is not reached', () => {
+      node.redis.clusterState.returns(Bluebird.resolve([
+        '42',
+        [
+          ['r1', JSON.stringify({index: 'i1', collection: 'c1', filters: 'f1'}), 1],
+          ['r2', JSON.stringify({index: 'i2', collection: 'c2', filters: 'f2'}), 2],
+        ]
+      ]));
+      node.redis.smembers.returns(Bluebird.resolve(['k1', 'k2', 'k3']));
       node.config.minimumNodes = 2;
       node.pool = {
         foo: {
@@ -336,41 +372,45 @@ describe('node', () => {
       node.broadcast = sinon.spy();
       node.join = sinon.spy();
 
-      node._removeNode('foo');
-
-      should(node.ready)
-        .be.false();
-      should(node.broadcast)
-        .be.calledWith('cluster:remove', node.uuid);
-      should(node.join)
-        .be.calledOnce();
-
+      return node._removeNode('foo')
+        .then(() => {
+          should(node.ready)
+            .be.false();
+          should(node.broadcast)
+            .be.calledWith('cluster:remove', node);
+          should(node.join)
+            .be.calledOnce();
+        });
     });
   });
 
-  describe('#_sync', () => {
+  describe('#sync', () => {
     it('autorefresh', () => {
-      node._sync({
-        event: 'autorefresh',
-        index: 'index',
-        value: 'value'
-      });
+      node.redis.hgetall.returns(Bluebird.resolve({
+        i1: true,
+        i2: false
+      }));
 
-      const request = node.kuzzle.services.list.storageEngine.setAutoRefresh.firstCall.args[0];
-      should(request.serialize())
-        .match({
-          data: {
-            controller: 'index',
-            action: 'setAutoRefresh',
-            body: {
-              autoRefresh: 'value'
-            }
-          }
+      return node.sync({
+        event: 'autorefresh'
+      })
+        .then(() => {
+          should(node.kuzzle.services.list.storageEngine.setAutoRefresh)
+            .be.calledTwice();
+
+          const req1 = node.kuzzle.services.list.storageEngine.setAutoRefresh.firstCall.args[0];
+          const req2 = node.kuzzle.services.list.storageEngine.setAutoRefresh.secondCall.args[0];
+
+          should(req1.input.resource.index).eql('i1');
+          should(req1.input.body.autoRefresh).be.true();
+
+          should(req2.input.resource.index).eql('i2');
+          should(req2.input.body.autoRefresh).be.false();
         });
     });
 
     it('indexCache:add', () => {
-      node._sync({
+      node.sync({
         event: 'indexCache:add',
         index: 'index',
         collection: 'collection'
@@ -381,7 +421,7 @@ describe('node', () => {
     });
 
     it('indexCache:remove', () => {
-      node._sync({
+      node.sync({
         event: 'indexCache:remove',
         index: 'index',
         collection: 'collection'
@@ -392,7 +432,7 @@ describe('node', () => {
     });
 
     it('indexCache:reset', () => {
-      node._sync({
+      node.sync({
         event: 'indexCache:reset'
       });
       should(node.kuzzle.indexCache.reset)
@@ -401,7 +441,7 @@ describe('node', () => {
 
     it('profile', () => {
       node.kuzzle.repositories.profile.profiles.foo = 'bar';
-      node._sync({
+      node.sync({
         event: 'profile',
         id: 'foo'
       });
@@ -411,7 +451,7 @@ describe('node', () => {
 
     it('role', () => {
       node.kuzzle.repositories.role.roles.foo = 'bar';
-      node._sync({
+      node.sync({
         event: 'role',
         id: 'foo'
       });
@@ -420,7 +460,7 @@ describe('node', () => {
     });
 
     it('strategy:added', () => {
-      node._sync({
+      node.sync({
         event: 'strategy:added',
         id: 'foo',
         pluginName: 'plugin',
@@ -433,7 +473,7 @@ describe('node', () => {
 
     it('strategy:removed', () => {
       node.kuzzle.pluginsManager.strategies.name = 'bar';
-      node._sync({
+      node.sync({
         event: 'strategy:removed',
         pluginName: 'pluginName',
         name: 'name'
@@ -443,19 +483,21 @@ describe('node', () => {
     });
 
     it('subscriptions', () => {
-      node._syncState = sinon.spy();
+      node.state.sync = sinon.spy();
+
       const data = {
-        event: 'subscriptions',
+        event: 'state',
         index: 'index',
         collection: 'collection'
       };
-      node._sync(data);
-      should(node._syncState)
+      node.sync(data);
+
+      should(node.state.sync)
         .be.calledWith(data);
     });
 
     it('validators', () => {
-      node._sync({
+      node.sync({
         event: 'validators'
       });
       should(node.kuzzle.validation.curateSpecification)
@@ -463,145 +505,109 @@ describe('node', () => {
     });
   });
 
-  describe('#_syncState', () => {
-    const state = {
-      autorefresh: {
-        india: 'true',
-        ireland: 'false'
-      },
-      filters: {
-        room1: {
-          index: 'india',
-          collection: 'coimbatore',
-          filters: 'filters:room1'
-        },
-        room2: {
-          index: 'ireland',
-          collection: 'cork',
-          filters: 'filters:room2'
-        },
-        room3: {
-          index: 'india',
-          collection: 'coimbatore',
-          filters: 'filters:room3'
-
-        },
-        room4: {
-          index: 'india',
-          collection: 'cuttak',
-          filters: 'filters:room4'
-        }
-      },
-      hc: {
-        customers: {
-          customer1: {room2: null},
-          customer2: {room4: null}
-        },
-        rooms: {
-          room1: {
+  describe('#node.state.sync', () => {
+    const rawState = [
+      42,
+      [
+        [
+          'room1',
+          JSON.stringify({
             index: 'india',
             collection: 'coimbatore',
-            channels: 'channels:room1',
-            customers: [
-              'customer2',
-              'customer4'
-            ]
-          },
-          room2: {
+            filters: 'filters:room1'
+          }),
+          2
+        ],
+        [
+          'room2',
+          JSON.stringify({
             index: 'ireland',
             collection: 'cork',
-            channels: 'channels:room2',
-            customers: [
-              'customer1'
-            ]
-          },
-          room3: {
+            filters: 'filters:room2'
+          }),
+          5
+        ],
+        [
+          'room3',
+          JSON.stringify({
             index: 'india',
             collection: 'coimbatore',
-            channels: 'channels:room3',
-            customers: [
-              'customer3',
-              'customer4'
-            ]
-          },
-          room4: {
+            filters: 'filters:room3'
+          }),
+          2
+        ],
+        [
+          'room4',
+          JSON.stringify({
             index: 'india',
             collection: 'cuttak',
-            channels: 'channels:room4',
-            customers: [
-              'customer4'
-            ]
-          }
-        }
-      }
-    };
+            filters: 'filters:room4'
+          }),
+          4
+        ]
+      ]
+    ];
 
     beforeEach(() => {
-      node.redis.clusterState.returns(Bluebird.resolve(JSON.stringify(state)));
+      node.redis.clusterState.returns(Bluebird.resolve(rawState));
     });
 
     it('should get a complete snapshot', () => {
-      return node._syncState()
+      return node.state.sync({
+        index: 'index',
+        collection: 'collection'
+      })
         .then(() => {
-          for (const roomId of ['room1', 'room2', 'room3', 'room4']) {
-            should(node.kuzzle.hotelClerk.rooms[roomId])
-              .match({
-                id: roomId,
-                index: state.hc.rooms[roomId].index,
-                collection: state.hc.rooms[roomId].collection,
-                channels: state.hc.rooms[roomId].channels,
-                customers: new Set(state.hc.rooms[roomId].customers)
-              });
+          should(node.kuzzle.realtime.storage.store)
+            .be.called();
 
-            should(node.kuzzle.dsl.storage.store)
-              .be.calledWith(state.filters[roomId].index, state.filters[roomId].collection, state.filters[roomId].filters, roomId);
+          for (const room of rawState[1]) {
+            const filter = JSON.parse(room[1]);
+            should(node.kuzzle.realtime.storage.store)
+              .be.calledWith(
+                filter.index,
+                filter.collection,
+                filter.filters,
+                room[0]
+              );
           }
-
-          should(node.kuzzle.services.list.storageEngine.settings.autoRefresh.india)
-            .be.true();
-          should(node.kuzzle.services.list.storageEngine.settings.autoRefresh.ireland)
-            .be.undefined();
         });
     });
 
     it('should delete non-protected rooms', () => {
-      node.kuzzle.hotelClerk.rooms.toDestroy1 = 'a room';
-      node.kuzzle.hotelClerk.rooms.toDestroy2 = 'another one';
+      node.kuzzle.realtime.storage.filtersIndex.index = {
+        collection: [
+          'todestroy',
+          'anotherone'
+        ]
+      };
 
-      return node._syncState()
+      return node.state.sync({index: 'index', collection: 'collection'})
         .then(() => {
-          should(node.kuzzle.hotelClerk._removeRoomEverywhere)
-            .be.calledWith('toDestroy1')
-            .be.calledWith('toDestroy2');
-        });
-    });
-
-    it('should delete non-protected rooms when syncing a collection', () => {
-      node.kuzzle.hotelClerk.rooms.toDestroy1 = 'a room';
-      node.kuzzle.hotelClerk.rooms.toDestroy2 = 'another one';
-      node.kuzzle.dsl.storage.filtersIndex.index = {collection: ['toDestroy1', 'toDestroy2']};
-
-      return node._syncState({index: 'index', collection: 'collection'})
-        .then(() => {
-          should(node.kuzzle.hotelClerk._removeRoomEverywhere)
-            .be.calledWith('toDestroy1')
-            .be.calledWith('toDestroy2');
+          should(node.kuzzle.realtime.remove)
+            .be.calledWith('todestroy')
+            .be.calledWith('anotherone');
         });
     });
 
     it('should not delete a protected room (=being created)', () => {
-      node.kuzzle.hotelClerk.rooms.toDestroy1 = 'a room';
-      node.kuzzle.hotelClerk.rooms.toDestroy2 = 'another one';
-      node.kuzzle.dsl.storage.filtersIndex.index = {collection: ['toDestroy1', 'toDestroy2']};
-      node.pendingRooms.create.toDestroy2 = true;
+      node.kuzzle.realtime.storage.filtersIndex.index = {
+        collection: [
+          'todestroy',
+          'anotherone',
+          'protected'
+        ]
+      };
+      node.state.locks.create.add('protected');
 
-      return node._syncState({index: 'index', collection: 'collection'})
+      return node.state.sync({index: 'index', collection: 'collection'})
         .then(() => {
-          should(node.kuzzle.hotelClerk._removeRoomEverywhere)
-            .be.calledWith('toDestroy1')
-            .not.be.calledWith('toDestroy2');
+          should(node.kuzzle.realtime.remove)
+            .be.calledWith('todestroy')
+            .be.calledWith('anotherone');
+          should(node.kuzzle.realtime.remove)
+            .not.be.calledWith('protected');
         });
-
     });
 
   });

@@ -32,7 +32,7 @@
     "lodash": "^4.17.4",
     "request": "^2.81.0",
     "uuid": "^3.1.0",
-    "zmq": "^2.15.3"
+    "zeromq": "^4.6.0"
   },
   "devDependencies": {
     "eslint": "4.5.0",

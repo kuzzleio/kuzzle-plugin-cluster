@@ -13,14 +13,6 @@ class KuzzleMock {
       }
     };
 
-    this.dsl = {
-      storage: {
-        filtersIndex: {},
-        filters: {},
-        store: sinon.spy()
-      }
-    };
-
     this.funnel = {
       controllers: {
         realtime: { }
@@ -40,7 +32,8 @@ class KuzzleMock {
     };
 
     this.notifier = {
-      _dispatch: sinon.spy()
+      _notifyDocument: sinon.spy(),
+      _notifyUser: sinon.spy()
     };
 
     this.pluginsManager = {
@@ -50,7 +43,12 @@ class KuzzleMock {
     };
 
     this.realtime = {
-      storage: {}
+      remove: sinon.spy(),
+      storage: {
+        filters: {},
+        filtersIndex: {},
+        store: sinon.spy()
+      }
     };
 
     this.repositories = {
