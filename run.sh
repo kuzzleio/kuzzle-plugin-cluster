@@ -46,5 +46,4 @@ trap _exit SIGINT SIGTERM
 docker-compose -p cluster -f "$compose_file" kill
 docker-compose -p cluster -f "$compose_file" build
 docker-compose -p cluster -f "$compose_file" rm -fv 2> /dev/null
-docker-compose -p cluster -f "$compose_file" scale kuzzle=${kuz_nodes} redis=3
-docker-compose -p cluster -f "$compose_file" up
+docker-compose -p cluster -f "$compose_file" up --scale kuzzle=${kuz_nodes} --scale redis=3
