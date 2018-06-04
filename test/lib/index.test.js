@@ -29,6 +29,10 @@ describe('index', () => {
     };
   });
 
+  afterEach(() => {
+    mockRequire.stopAll();
+  });
+
   describe('#init', () => {
     it('should init the cluster with given config', () => {
       cluster.constructor._resolveBinding = sinon.stub().returnsArg(0);

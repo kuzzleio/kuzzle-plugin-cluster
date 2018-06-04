@@ -11,7 +11,7 @@ services:
     command: |
       bash -c '
         rm -rf ./node_modules
-        npm install
+        npm install --unsafe-perm
         echo
         echo "plugins"
         rm -rf ./plugins/enabled/*/node_modules
@@ -19,7 +19,7 @@ services:
         for plugin in /var/app/plugins/enabled/*/ ; do
           echo "${DOLLAR}${DOLLAR}plugin"
           cd "${DOLLAR}${DOLLAR}plugin"
-          npm install
+          npm install --unsafe-perm
           cd /var/app
         done
         echo
@@ -27,7 +27,7 @@ services:
         rm -rf protocols/enabled/*/node_modules
         for protocol in protocols/enabled/*/; do
           cd "${DOLLAR}${DOLLAR}protocol"
-          npm install
+          npm install --unsafe-perm
           cd /var/app
         done
       '

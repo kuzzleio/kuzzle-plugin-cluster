@@ -18,12 +18,12 @@ trap _exit SIGINT SIGTERM EXIT
   . ./my.env
 
   # lb
-  export LB_IMAGE=${LB_IMAGE:-kuzzleio/dev}
+  export LB_IMAGE=${LB_IMAGE:-kuzzleio/kuzzle}
   export LB_VOLUME="[]"
 
 
   # kuzzle
-  export KUZ_IMAGE=${KUZ_IMAGE:-kuzzleio/dev}
+  export KUZ_IMAGE=${KUZ_IMAGE:-kuzzleio/kuzzle}
   export KUZ_VOLUME=""
   if [ "$KUZ_PATH" != "" ]; then
     export KUZ_VOLUME="- \"$(readlink -f ${KUZ_PATH}):/var/app\""
