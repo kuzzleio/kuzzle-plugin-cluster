@@ -80,7 +80,7 @@ services:
       consul.service: kuzzle
     environment:
       NODE_ENV: ${DOLLAR}{NODE_ENV:-development}
-      DEBUG: ${DOLLAR}{DEBUG:-kuzzle:cluster*,-kuzle:cluster:notify}
+      DEBUG: ${DOLLAR}{DEBUG:-none}
       DEBUG_COLORS: ${DOLLAR}{DEBUG_COLORS:-on}
 
   redis:
