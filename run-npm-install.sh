@@ -33,9 +33,9 @@ trap _exit SIGINT SIGTERM EXIT
 )
 
 docker-compose -p cluster -f "$COMPOSE_FILE" kill
-docker-compose -p cluster -f "$COMPOSE_FILE" scale kuzzle=1
 docker-compose -p cluster -f "$COMPOSE_FILE" rm -fv 2> /dev/null
+docker-compose -p cluster -f "$COMPOSE_FILE" pull
 docker-compose -p cluster -f "$COMPOSE_FILE" build
-docker-compose -p cluster -f "$COMPOSE_FILE" up
+docker-compose -p cluster -f "$COMPOSE_FILE" up --scale kuzzle=1
 
 
