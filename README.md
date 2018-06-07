@@ -5,9 +5,25 @@ This plugin adds a cluster mode to Kuzzle.
 
 ## Compatiblity
 
-Kuzzle: up-coming >=1.3.0 (commit ee04f8e)
+Kuzzle: >=1.3.0 (commit ee04f8e)
 
-## How to set it up
+## Try it
+
+To run a kuzzle stack, you can use the provided compose file:
+
+```bash
+# import the images
+curl -SL https://dl.kuzzle.io/docker-images/20180607/kuzzleio.cluster.tar.gz | docker load
+# (optional)
+curl -SL https://dl.kuzzle.io/docker-images/20180607/redis.init.tar.gz | docker load
+
+docker-compose -p cluster rm -fv
+docker-compose -p cluster --scale redis=3 --scale kuzzle=3
+```
+
+## Run a development stack
+
+The development stack mounts both kuzzle and the cluster sources as docker volumes.
 
 ```bash
 cd <dir>
@@ -18,11 +34,12 @@ cd kuzzle-plugin-cluster
 cp docker-compose/my.env.sample docker-compose/my.env
 vim docker-compose/my.env
 
-./run-npm-install.sh
-./run.sh
+./dev-npm-install.sh
+./dev.sh
 ```
 
 You should now have a full Kuzzle clustered stack running 3 Kuzzle front nodes (and 3 servers).
+Each update on either Kuzzle or the cluster source should automatically restart kuzzle.
 
 ## nginx vs haproxy
 

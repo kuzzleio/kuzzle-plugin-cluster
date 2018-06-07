@@ -1,7 +1,12 @@
 FROM kuzzleio/kuzzle
 
-RUN  apt-get update \
+RUN  set -x \
+  \
+  && npm set user 0 \
+  && npm set unsafe-perm true \
+  \
+  && apt-get update \
   && apt-get install -y \
     build-essential \
-    python-minimal \
+    python-dev \
     libzmq3-dev
