@@ -4,10 +4,8 @@ map $http_upgrade $connection_upgrade {
 }
 
 upstream kuzzle {
-{{range $services := service "kuzzle"}}{{scratch.Set "has_services" true}}
-  server {{.Address}}:7512; {{end}}
-{{with $has_service := scratch.Get "has_services"}}{{if not $has_service}}
-  server 127.0.0.1:80; {{end}}{{end}}
+{{range $services := service "kuzzle"}}
+  server {{.Address}}:7512;{{else}}  server localhost:80;{{end}}
 }
 
 server {
