@@ -75,7 +75,7 @@ services:
       - ..:/var/app/plugins/enabled/cluster
       - ./scripts:/scripts
       - ./config/pm2-dev.json:/config/pm2.json
-      - ./config/kuzzlerc:/etc/kuzzlerc
+      - ./config/kuzzlerc.dev:/etc/kuzzlerc
     labels:
       consul.service: kuzzle
     environment:

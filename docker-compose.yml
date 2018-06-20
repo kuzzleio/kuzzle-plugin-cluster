@@ -3,8 +3,6 @@ version: "3"
 services:
   consul:
     image: consul:1.1.0
-    ports:
-      - 8500:8500
     command: >
       agent
         -server
@@ -26,40 +24,22 @@ services:
     environment:
       c2c_consul__host: consul
 
-  haproxy:
-    image: haproxy:1.7-alpine
-    command: sh -c 'exec tail -f /dev/null'
-    container_name: haproxy
-    ports:
-      - 7513:7512
-      - 7575:7575
-    labels:
-      consul.skip: "true"
-    volumes:
-      - haproxy:/usr/local/etc/haproxy
-
   consultemplate:
     image: kuzzleio/consul-template:0.19
     depends_on:
       - consul
-      - haproxy
       - nginx
     command: >
       -consul-addr consul:8500
-      -template /templates/haproxy/haproxy.cfg.tpl:/usr/local/etc/haproxy/haproxy.cfg:reload-haproxy.sh
       -template /templates/nginx/kuzzle.conf.tpl:/usr/local/etc/nginx/kuzzle.conf:reload-nginx.sh
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./docker-compose/haproxy/tpl:/templates/haproxy
-      - ./docker-compose/haproxy/reload-haproxy.sh:/usr/local/bin/reload-haproxy.sh
-      - haproxy:/usr/local/etc/haproxy
       - ./docker-compose/nginx/tpl:/templates/nginx
       - ./docker-compose/nginx/reload-nginx.sh:/usr/local/bin/reload-nginx.sh
       - nginx:/usr/local/etc/nginx
 
   nginx:
     image: nginx:1.13-alpine
-    container_name: nginx
     ports:
       - 7512:7512
     labels:
@@ -70,7 +50,7 @@ services:
   kuzzle:
     image: kuzzleio/cluster
     volumes:
-      - ./docker-compose/config/kuzzlerc:/etc/kuzzlerc
+     - ./docker-compose/config/kuzzlerc.prod:/etc/kuzzlerc
     labels:
       consul.service: kuzzle
     environment:
@@ -79,15 +59,9 @@ services:
       DEBUG_COLORS: ${DEBUG_COLORS:-on}
 
   redis:
-    build: ./docker-compose/redis
-    command: redis-server /usr/local/etc/redis/redis.conf
-
-  redis_init_cluster:
-    build: ./docker-compose/redis-cluster-init
-    depends_on:
-      - redis
-    command: cluster_redis_1 cluster_redis_2 cluster_redis_3
-
+    image: redis:3.2
+    labels:
+      consul.skip: "true"
 
   elasticsearch:
     image: kuzzleio/elasticsearch:5.4.1
@@ -96,4 +70,3 @@ services:
 
 volumes:
   nginx:
-  haproxy:
