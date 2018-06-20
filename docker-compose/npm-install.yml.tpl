@@ -6,8 +6,6 @@ services:
     volumes:
       ${KUZ_VOLUME}
       - "..:/var/app/plugins/enabled/cluster"
-      - "./scripts:/scripts"
-      - "./config/pm2-dev.json:/config/pm2.json"
     command: |
       bash -c '
         rm -rf ./node_modules

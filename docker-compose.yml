@@ -1,0 +1,72 @@
+version: "3"
+
+services:
+  consul:
+    image: consul:1.1.0
+    command: >
+      agent
+        -server
+        -bind=0.0.0.0
+        -dev
+        -client=0.0.0.0
+        -ui
+    labels:
+      consul.skip: "true"
+
+  container2sul:
+    image: vidiben/container2sul
+    depends_on:
+      - consul
+    labels:
+      consul.skip: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      c2c_consul__host: consul
+
+  consultemplate:
+    image: kuzzleio/consul-template:0.19
+    depends_on:
+      - consul
+      - nginx
+    command: >
+      -consul-addr consul:8500
+      -template /templates/nginx/kuzzle.conf.tpl:/usr/local/etc/nginx/kuzzle.conf:reload-nginx.sh
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker-compose/nginx/tpl:/templates/nginx
+      - ./docker-compose/nginx/reload-nginx.sh:/usr/local/bin/reload-nginx.sh
+      - nginx:/usr/local/etc/nginx
+
+  nginx:
+    image: nginx:1.13-alpine
+    ports:
+      - 7512:7512
+    labels:
+      consul.skip: "true"
+    volumes:
+      - nginx:/etc/nginx/conf.d
+
+  kuzzle:
+    image: kuzzleio/cluster
+    volumes:
+     - ./docker-compose/config/kuzzlerc.prod:/etc/kuzzlerc
+    labels:
+      consul.service: kuzzle
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DEBUG: ${DEBUG:-none}
+      DEBUG_COLORS: ${DEBUG_COLORS:-on}
+
+  redis:
+    image: redis:3.2
+    labels:
+      consul.skip: "true"
+
+  elasticsearch:
+    image: kuzzleio/elasticsearch:5.4.1
+    environment:
+      cluster.name: kuzzle
+
+volumes:
+  nginx:

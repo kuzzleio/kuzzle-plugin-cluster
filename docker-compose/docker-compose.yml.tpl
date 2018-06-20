@@ -2,15 +2,15 @@ version: "3"
 
 services:
   consul:
-    image: consul:0.8.5
+    image: consul:1.1.0
     ports:
       - 8500:8500
     command: >
       agent
         -server
+        -dev
         -bind=0.0.0.0
         -client=0.0.0.0
-        -bootstrap-expect=1
         -ui
     labels:
       consul.skip: "true"
@@ -75,7 +75,7 @@ services:
       - ..:/var/app/plugins/enabled/cluster
       - ./scripts:/scripts
       - ./config/pm2-dev.json:/config/pm2.json
-      - ./config/kuzzlerc:/etc/kuzzlerc
+      - ./config/kuzzlerc.dev:/etc/kuzzlerc
     labels:
       consul.service: kuzzle
     environment:
@@ -95,14 +95,9 @@ services:
 
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:5.4.1
+    image: kuzzleio/elasticsearch:5.4.1
     environment:
       cluster.name: kuzzle
-      # disable xpack
-      xpack.security.enabled: "false"
-      xpack.monitoring.enabled: "false"
-      xpack.graph.enabled: "false"
-      xpack.watcher.enabled: "false"
 
 volumes:
   nginx:
