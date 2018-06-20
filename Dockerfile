@@ -17,7 +17,7 @@ RUN  set -x \
   && ln -s /var/app/plugins/available/cluster /var/app/plugins/enabled/ \
   && cd /var/app/plugins/enabled/cluster \
   && npm install --unsafe-perm \
-  && cp docker-compose/config/kuzzlerc /etc/ \
+  && cp docker-compose/config/kuzzlerc.prod /etc/kuzzlerc \
   && cd /var/app \
   \
   && apt-get remove --purge --auto-remove -y \

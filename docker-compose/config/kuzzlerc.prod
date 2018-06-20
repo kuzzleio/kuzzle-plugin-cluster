@@ -1,0 +1,49 @@
+{
+  "dump": {
+    "enabled": false
+  },
+  "limits": {
+    "subscriptionMinterms": 1000
+  },
+  "plugins": {
+    "common": {
+      "initTimeout": 20000,
+      "pipeWarnTime": 5000,
+      "pipeTimeout": 10000
+    },
+    "cluster": {
+      "privileged": true,
+      "minimumNodes": 2
+    },
+    "kuzzle-plugin-logger": {
+      "threads": false
+    }
+  },
+  "services": {
+    "db": {
+      "client": {
+        "host": "http://elasticsearch:9200"
+      }
+    },
+    "internalCache": {
+      "node": {
+        "host": "redis",
+        "port": 6379
+      }
+    },
+    "memoryStorage": {
+      "node": {
+        "host": "redis",
+        "port": 6379
+      }
+    },
+    "internalBroker": {
+      "socket": false,
+      "port": 7513
+    }
+  },
+  "server": {
+    "accessLogIpOffset": 1
+  }
+}
+

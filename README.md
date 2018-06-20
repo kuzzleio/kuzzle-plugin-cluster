@@ -12,14 +12,11 @@ Kuzzle: >=1.3.0 (commit ee04f8e)
 To run a kuzzle stack, you can use the provided compose file:
 
 ```bash
-# import the images
-curl -SL https://dl.kuzzle.io/docker-images/20180607/kuzzleio.cluster.tar.gz | docker load
-# (optional)
-curl -SL https://dl.kuzzle.io/docker-images/20180607/redis.init.tar.gz | docker load
-
-docker-compose -p cluster rm -fv
-docker-compose -p cluster --scale redis=3 --scale kuzzle=3
+docker-compose up --scale kuzzle=3
 ```
+
+NB: This compose stack is for tests only and should not be used as-is on production.  
+Notably, only kuzzle runs in cluster mode, elasticsearch and redis are using one node only.
 
 ## Run a development stack
 
@@ -41,9 +38,9 @@ vim docker-compose/my.env
 You should now have a full Kuzzle clustered stack running 3 Kuzzle front nodes (and 3 servers).
 Each update on either Kuzzle or the cluster source should automatically restart kuzzle.
 
-## nginx vs haproxy
+### nginx vs haproxy
 
-The stack exposes 2 reverse proxies:
+The development stack exposes 2 reverse proxies:
 
 * nginx on port 7512
 * haproxy on port 7513
@@ -53,7 +50,7 @@ In counterpart, nginx currently offers a big advantage over haproxy in being abl
 
 In other words, when adding a node to the cluster, haproxy (at least up to current version 1.7) will disconnect all clients, while nginx won't.
 
-## Goodies
+### Goodies
 
 * [http://localhost:7575/hastats] (kuzzle/kuzzle) => haproxy stats page
 * [http://localhost:7512/_plugin/cluster/status] => cluster status
