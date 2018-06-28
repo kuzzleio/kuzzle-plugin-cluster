@@ -21,11 +21,13 @@
 
 
 const
-  Bluebird = require('bluebird'),
   mockRequire = require('mock-require'),
   KuzzleMock = require('../mocks/kuzzle.mock'),
   NodeMock = require('../mocks/node.mock'),
   RedisMock = require('../mocks/redis.mock'),
+  {
+    NotFoundError
+  } = require('kuzzle-common-objects').errors,
   Request = require('kuzzle-common-objects').Request,
   should = require('should'),
   sinon = require('sinon');
@@ -40,19 +42,28 @@ describe('index', () => {
 
   beforeEach(() => {
     mockRequire('ioredis', RedisMock);
+    mockRequire('../../lib/node', NodeMock);
     Cluster = mockRequire.reRequire('../../lib');
     cluster = new Cluster();
-    cluster.node = new NodeMock(cluster);
 
     context = {
       accessors: {
-        kuzzle: new KuzzleMock()
+        kuzzle: new KuzzleMock(),
+      },
+      errors: {
+        NotFoundError
       }
     };
   });
 
   afterEach(() => {
     mockRequire.stopAll();
+
+    // cleaning up to prevent event leak warnings,
+    // triggered because of the shutdown listener
+    // being registered on global events each time
+    // a new cluster is instantiated
+    process.removeAllListeners();
   });
 
   describe('#init', () => {
@@ -108,35 +119,6 @@ describe('index', () => {
     beforeEach(() => {
       cluster.init({}, context);
       cluster.node.ready = true;
-    });
-
-    it('most hooks should do nothing if the cluster node is not ready', () => {
-      for (const event of Object.keys(cluster.hooks)) {
-        const hook = cluster.hooks[event];
-
-        if ([
-          'kuzzleStarted',
-          'roomBeingCreated',
-          'roomCreated',
-          'roomDeleted',
-          'unlockCreateRoom',
-          'unlockDeleteRoom'
-        ].indexOf(hook) > -1) {
-          continue;
-        }
-
-        const debug = sinon.spy();
-        mockRequire('debug', () => debug);
-        Cluster = mockRequire.reRequire('../../lib');
-        cluster = new Cluster();
-        cluster.node.ready = false;
-
-        cluster[hook]();
-
-        should(debug)
-          .be.calledOnce()
-          .be.calledWithMatch(/^\[.*?\]\[warning\] could not broadcast/);
-      }
     });
 
     describe('#autorefreshUpdated', () => {
@@ -222,15 +204,28 @@ describe('index', () => {
       });
     });
 
-    describe('#notify', () => {
-      it('should broadcast the notification', () => {
-        should(cluster.hooks['core:notify:dispatch'])
-          .eql('notify');
+    describe('#notifyDocument', () => {
+      it('should broadcast the Document notification', () => {
+        should(cluster.hooks['core:notify:document'])
+          .eql('notifyDocument');
 
-        cluster.notify('notification');
+        cluster.notifyDocument('notification');
 
         should(cluster.node.broadcast)
-          .be.calledWith('cluster:notify', 'notification');
+          .be.calledWith('cluster:notify:document', 'notification');
+      });
+
+    });
+
+    describe('#notifyUser', () => {
+      it('should broadcast the User notification', () => {
+        should(cluster.hooks['core:notify:user'])
+          .eql('notifyUser');
+
+        cluster.notifyUser('notification');
+
+        should(cluster.node.broadcast)
+          .be.calledWith('cluster:notify:user', 'notification');
       });
 
     });
@@ -301,8 +296,12 @@ describe('index', () => {
         should(cluster.hooks['core:hotelClerk:addSubscription'])
           .eql('subscriptionAdded');
 
-        cluster.kuzzle.hotelClerk.rooms.roomId = 'room';
-        cluster.kuzzle.hotelClerk.customers.connectionId = 'customer';
+        cluster.kuzzle.hotelClerk.rooms.roomId = {
+          customers: new Set(['customer']),
+          channels: {},
+          index: 'index',
+          collection: 'collection'
+        };
         cluster._serializeRoom = JSON.stringify;
 
         return cluster.subscriptionAdded({
@@ -314,18 +313,23 @@ describe('index', () => {
         })
           .then(() => {
             should(cluster.redis.clusterSubOn)
-              .be.calledWith('index', 'collection', 'roomId', 'connectionId', '"room"', '"customer"', JSON.stringify({
-                index: 'index',
-                collection: 'collection',
-                filters: 'filters'
-              }));
+              .be.calledWith('{index/collection}',
+                cluster.uuid,
+                'roomId',
+                'connectionId',
+                JSON.stringify({
+                  index: 'index',
+                  collection: 'collection',
+                  filters: 'filters'
+                })
+              );
 
             should(cluster.node.broadcast)
               .be.calledWith('cluster:sync', {
                 index: 'index',
                 collection: 'collection',
                 roomId: 'roomId',
-                event: 'subscriptions',
+                event: 'state',
                 post: 'add'
               });
           });
@@ -337,8 +341,12 @@ describe('index', () => {
         should(cluster.hooks['core:hotelClerk:join'])
           .eql('subscriptionJoined');
 
-        cluster.kuzzle.hotelClerk.rooms.roomId = 'room';
-        cluster.kuzzle.hotelClerk.customers.connectionId = 'customer';
+        cluster.kuzzle.hotelClerk.rooms.roomId = {
+          customers: new Set(['customer']),
+          channels: {},
+          index: 'index',
+          collection: 'collection'
+        };
         cluster._serializeRoom = JSON.stringify;
 
         return cluster.subscriptionJoined({
@@ -349,14 +357,19 @@ describe('index', () => {
         })
           .then(() => {
             should(cluster.redis.clusterSubOn)
-              .be.calledWith('index', 'collection', 'roomId', 'connectionId', '"room"', '"customer"', 'none');
+              .be.calledWith('{index/collection}',
+                cluster.uuid,
+                'roomId',
+                'connectionId',
+                'none'
+              );
 
             should(cluster.node.broadcast)
               .be.calledWith('cluster:sync', {
                 index: 'index',
                 collection: 'collection',
                 roomId: 'roomId',
-                event: 'subscriptions',
+                event: 'state',
                 post: 'join'
               });
           });
@@ -369,28 +382,38 @@ describe('index', () => {
         should(cluster.hooks['core:hotelClerk:removeRoomForCustomer'])
           .eql('subscriptionOff');
 
-        cluster.kuzzle.hotelClerk.rooms.roomId = { customers: {size: 2} };
-        cluster.redis.clusterSubOff.returns(Bluebird.resolve(['index', 'collection', 'debug']));
+        cluster.kuzzle.hotelClerk.rooms.roomId = {
+          id: 'roomId',
+          customers: new Set(['customer', 'customers2']),
+          channels: {},
+          index: 'index',
+          collection: 'collection'
+        };
+        cluster.redis.clusterSubOff.resolves(['index', 'collection', 'debug']);
 
         return cluster.subscriptionOff({
-          roomId: 'roomId',
+          room: cluster.kuzzle.hotelClerk.rooms.roomId,
           requestContext: {
             connectionId: 'connectionId'
           }
         })
           .then(() => {
             should(cluster.redis.clusterSubOff)
-              .be.calledWith('roomId', 'connectionId');
+              .be.calledWith(
+                '{index/collection}',
+                cluster.uuid,
+                'roomId',
+                'connectionId'
+              );
 
             should(cluster.node.broadcast)
               .be.calledWith('cluster:sync', {
-                roomId: 'roomId',
                 index: 'index',
                 collection: 'collection',
-                event: 'subscriptions',
+                roomId: 'roomId',
+                event: 'state',
                 post: 'off'
               });
-
           });
       });
     });
@@ -409,21 +432,20 @@ describe('index', () => {
             event: 'validators'
           });
       });
-
     });
 
-    describe('#roomBeingCreated', () => {
+    describe('#roomCreated', () => {
       it('should flag the room to protect it', () => {
         should(cluster.hooks['room:new'])
-          .eql('roomBeingCreated');
+          .eql('roomCreated');
 
-        cluster.roomBeingCreated({roomId: 'roomId'});
+        cluster.roomCreated({roomId: 'roomId'});
 
-        should(cluster.node.pendingRooms.create.roomId)
+        should(cluster.node.state.locks.create.has('roomId'))
           .be.true();
       });
-
     });
+
   });
 
   describe('#controller', () => {
@@ -444,22 +466,22 @@ describe('index', () => {
         cluster.node.ready = false;
 
         const request = new Request({});
-        const response = cluster.clusterHealthAction(request);
 
-        should(response)
-          .eql('ko');
-        should(request.status)
-          .eql(404);
+        return cluster.clusterHealthAction(request)
+          .catch((response) => {
+            should(response.message)
+              .eql('ko');
+          });
       });
 
       it('should return ok if the node is ready', () => {
         const request = new Request({});
-        const response = cluster.clusterHealthAction(request);
 
-        should(response)
-          .eql('ok');
-        should(request.status)
-          .eql(102);
+        return cluster.clusterHealthAction(request)
+          .then((response) => {
+            should(response).eql('ok');
+            should(request.status).eql(102);
+          });
       });
     });
 
@@ -475,12 +497,10 @@ describe('index', () => {
         cluster.node.ready = false;
 
         const request = new Request({});
-        const response = cluster.clusterStatusAction(request);
-
-        should(response)
-          .eql('ko');
-        should(request.status)
-          .eql(404);
+        return cluster.clusterStatusAction(request)
+          .catch((response) => {
+            should(response.message).eql('ko');
+          });
       });
 
       it('should return the cluster summary', () => {
@@ -495,28 +515,29 @@ describe('index', () => {
         };
 
         const request = new Request({});
-        const response = cluster.clusterStatusAction(request);
-
-        should(response)
-          .eql({
-            count: 3,
-            current: {
-              pub: 'current-pub',
-              router: 'current-router',
-              ready: true
-            },
-            pool: [
-              {
-                pub: 'foo-pub',
-                router: 'foo-router',
-                ready: true
-              },
-              {
-                pub: 'bar-pub',
-                router: 'bar-router',
-                ready: false
-              }
-            ]
+        return cluster.clusterStatusAction(request)
+          .then((response) => {
+            should(response)
+              .eql({
+                count: 3,
+                current: {
+                  pub: 'current-pub',
+                  router: 'current-router',
+                  ready: true
+                },
+                pool: [
+                  {
+                    pub: 'foo-pub',
+                    router: 'foo-router',
+                    ready: true
+                  },
+                  {
+                    pub: 'bar-pub',
+                    router: 'bar-router',
+                    ready: false
+                  }
+                ]
+              });
           });
       });
     });
@@ -533,24 +554,18 @@ describe('index', () => {
         cluster.node.ready = false;
 
         const request = new Request({});
-        const response = cluster.clusterResetAction(request);
-
-        should(response)
-          .eql('ko');
-        should(request.status)
-          .eql(404);
+        return cluster.clusterResetAction(request)
+          .catch((response) => {
+            should(response.message).eql('ko');
+          });
       });
 
       it('should reset redis state, sync its one and broadcast a sync request', () => {
         const request = new Request({});
         return cluster.clusterResetAction(request)
           .then(() => {
-            should(cluster.redis.clusterReset)
-              .be.calledOnce();
-            should(cluster.node._syncState)
-              .be.calledOnce();
             should(cluster.node.broadcast)
-              .be.calledWith('cluster:sync', {event: 'subscriptions'});
+              .be.calledWith('cluster:sync', {event: 'state:reset'});
           });
       });
     });

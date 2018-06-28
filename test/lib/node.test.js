@@ -21,12 +21,12 @@
 
 
 const
-  Bluebird = require('bluebird'),
   KuzzleMock = require('../mocks/kuzzle.mock'),
   mockRequire = require('mock-require'),
   RedisMock = require('../mocks/redis.mock'),
   should = require('should'),
   sinon = require('sinon'),
+  Request = require('kuzzle-common-objects').Request,
   zmqMock = require('../mocks/zmq.mock');
 
 describe('node', () => {
@@ -49,12 +49,17 @@ describe('node', () => {
       kuzzle: new KuzzleMock(),
       log: sinon.spy(),
       redis: new RedisMock(),
-      uuid: 'uuid'
+      uuid: 'uuid',
+      cleanNode: sinon.stub().resolves(),
     };
 
     mockRequire('zmq', zmqMock);
     const Node = mockRequire.reRequire('../../lib/node');
     node = new Node(cluster);
+  });
+
+  afterEach(() => {
+    clearInterval(node.heartbeatTimer);
   });
 
   describe('#constructor', () => {
@@ -85,12 +90,9 @@ describe('node', () => {
 
   describe('#getters', () => {
     it('should return their context related property', () => {
-      should(node.config)
-        .be.exactly(cluster.config);
-      should(node.redis)
-        .be.exactly(cluster.redis);
-      should(node.kuzzle)
-        .be.exactly(cluster.kuzzle);
+      should(node.config).be.exactly(cluster.config);
+      should(node.redis).be.exactly(cluster.redis);
+      should(node.kuzzle).be.exactly(cluster.kuzzle);
     });
   });
 
@@ -111,7 +113,9 @@ describe('node', () => {
     it('should add nodes retrieved from redis', () => {
       node._addNode = sinon.spy();
 
-      node.redis.smembers = sinon.stub().returns(Bluebird.resolve(['"foo"', '"bar"']));
+      node.redis.smembers.resolves(['"foo"', '"bar"']);
+      node.redis.scan.onFirstCall().resolves({newCursor: 1, keys: ['baz', 'zab']});
+      node.redis.scan.onSecondCall().resolves({newCursor: 0, keys: ['qux']});
 
       return node.discover()
         .then(() => {
@@ -120,6 +124,16 @@ describe('node', () => {
             .be.calledWith('foo')
             .be.calledWith('bar');
 
+          should(node.redis.del)
+            .calledThrice()
+            .calledWith('baz')
+            .calledWith('zab')
+            .calledWith('qux');
+
+          should(node.redis.scan)
+            .calledTwice()
+            .calledWith(0, 'MATCH', 'cluster*', 'COUNT', 1000)
+            .calledWith(1, 'MATCH', 'cluster*', 'COUNT', 1000);
         });
     });
   });
@@ -130,19 +144,12 @@ describe('node', () => {
 
       return node.init()
         .then(() => {
-          should(node.redis.defineCommand)
-            .be.calledOnce()
-            .be.calledWith('clusterState');
-
-          should(node.redis.sadd)
-            .be.calledWith('cluster:discovery');
-
           should(node.sockets.pub.bind)
             .be.calledOnce()
-            .be.calledWith('pub-href');
+            .be.calledWith(cluster.config.bindings.pub.href);
           should(node.sockets.router.bind)
             .be.calledOnce()
-            .be.calledWith('router-href');
+            .be.calledWith(cluster.config.bindings.router.href);
 
           should(node.join)
             .be.calledOnce();
@@ -152,10 +159,11 @@ describe('node', () => {
 
   describe('#join', () => {
     beforeEach(() => {
-      node.broadcast = sinon.stub().returns(Bluebird.resolve());
-      node.discover = sinon.stub().returns(Bluebird.resolve());
-      node._remoteSub = sinon.stub().returns(Bluebird.resolve());
-      node._syncState = sinon.stub().returns(Bluebird.resolve());
+      node.broadcast = sinon.stub().resolves();
+      node.discover = sinon.stub().resolves();
+      node._remoteSub = sinon.stub().resolves();
+      node._syncState = sinon.stub().resolves();
+      node.state.syncAll = sinon.stub().resolves();
 
       node.pool = {
         foo: {router: 'foo-router'},
@@ -165,11 +173,8 @@ describe('node', () => {
 
     it('should do nothing if the cluster is ready', () => {
       node.ready = true;
-      node.discover = sinon.spy();
-
       node.join();
-      should(node.discover)
-        .have.callCount(0);
+      should(node.discover).have.callCount(0);
     });
 
     it('should run the sync sequence on discovered nodes', () => {
@@ -177,11 +182,10 @@ describe('node', () => {
         .then(() => {
           should(node._remoteSub)
             .be.calledTwice()
-            .be.calledWith('foo-router')
-            .be.calledWith('bar-router');
+            .be.calledWith({router: 'foo-router'})
+            .be.calledWith({router: 'bar-router'});
 
-          should(node._syncState)
-            .be.calledOnce();
+          should(node.state.syncAll).be.calledOnce();
 
           should(node.broadcast)
             .be.calledOnce()
@@ -202,11 +206,8 @@ describe('node', () => {
   });
 
   describe('#_addNode', () => {
-    it('should not add itself', () => {
-      node._addNode({pub: node.uuid});
-
-      should(node.sockets.sub.connect)
-        .have.callCount(0);
+    beforeEach(() => {
+      sinon.stub(node, '_heartbeat');
     });
 
     it('should do nothing if the node is already registered', () => {
@@ -218,14 +219,12 @@ describe('node', () => {
     });
 
     it('should register the node', () => {
-      node._heartbeat = sinon.spy();
-
       node._addNode({pub: 'foo'});
 
       should(node.sockets.sub.connect)
         .be.calledWith('foo');
       should(node._heartbeat)
-        .be.calledWith('foo');
+        .be.calledWith({pub: 'foo'});
       should(node.pool.foo)
         .eql({pub: 'foo'});
     });
@@ -258,14 +257,80 @@ describe('node', () => {
         .be.calledWith('data');
     });
 
-    it('cluster:notify', () => {
-      node._onSubMessage(JSON.stringify(['cluster:notify', {
-        channels: 'channels',
-        notification: 'notification',
-        connectionId: 'connectionId'
-      }]));
-      should(node.kuzzle.notifier._dispatch)
-        .be.calledWith('channels', 'notification', 'connectionId', false);
+    it('cluster:notify:document', () => {
+      const payload = {
+        rooms: ['r1', 'r2', 'r3'],
+        request: {
+          data: {
+            body: {foo: 'bar'},
+            index: 'index',
+            collection: 'collection'
+          },
+          options: {
+            connectionId: 'connectionId'
+          }
+        },
+        scope: 'scope',
+        state: 'state',
+        action: 'action',
+        content: 'content'
+      };
+
+      node._onSubMessage(JSON.stringify(['cluster:notify:document', payload]));
+
+      should(node.kuzzle.notifier._notifyDocument)
+        .be.calledWithMatch(payload.rooms,
+          sinon.match.instanceOf(Request),
+          payload.scope,
+          payload.state,
+          payload.action,
+          payload.content);
+
+      const sentRequest = node.kuzzle.notifier._notifyDocument.firstCall.args[1];
+
+      should(sentRequest.input.resource).match({
+        index: payload.request.data.index,
+        collection: payload.request.data.collection
+      });
+
+      should(sentRequest.input.body).match(payload.request.data.body);
+      should(sentRequest.context.connectionId).match(payload.request.options.connectionId);
+    });
+
+    it('cluster:notify:user', () => {
+      const payload = {
+        room: 'room',
+        request: {
+          data: {
+            body: {foo: 'bar'},
+            index: 'index',
+            collection: 'collection'
+          },
+          options: {
+            connectionId: 'connectionId'
+          }
+        },
+        scope: 'scope',
+        content: 'content'
+      };
+
+      node._onSubMessage(JSON.stringify(['cluster:notify:user', payload]));
+
+      should(node.kuzzle.notifier._notifyUser)
+        .be.calledWithMatch(payload.room,
+          sinon.match.instanceOf(Request),
+          payload.scope,
+          payload.content);
+
+      const sentRequest = node.kuzzle.notifier._notifyUser.firstCall.args[1];
+
+      should(sentRequest.input.resource).match({
+        index: payload.request.data.index,
+        collection: payload.request.data.collection
+      });
+
+      should(sentRequest.input.body).match(payload.request.data.body);
+      should(sentRequest.context.connectionId).match(payload.request.options.connectionId);
     });
 
     it('cluster:ready', () => {
@@ -296,24 +361,23 @@ describe('node', () => {
 
     it('cluster:remove', () => {
       node._removeNode = sinon.spy();
-      node._onSubMessage(JSON.stringify(['cluster:remove', 'data']));
+      node._onSubMessage(JSON.stringify(['cluster:remove', {pub: 'data'}]));
 
       should(node._removeNode)
         .be.calledWith('data');
     });
 
     it('cluster:sync', () => {
-      node._sync = sinon.spy();
+      node.sync = sinon.spy();
       node._onSubMessage(JSON.stringify(['cluster:sync', 'data']));
 
-      should(node._sync)
-        .be.calledWith('data');
+      should(node.sync).be.calledWith('data');
     });
 
   });
 
   describe('#_remoteSub', () => {
-    it('should ask remote node to subscribe to it', (done) => {
+    it('should ask remote node to subscribe to it', () => {
       node._remoteSub('endpoint');
 
       const socket = zmqMock.socket.lastCall.returnValue;
@@ -325,105 +389,133 @@ describe('node', () => {
       onMsg(JSON.stringify(['remoteSub', true]));
       should(socket.close)
         .be.calledOnce();
-
-      done();
     });
-
   });
 
   describe('#_removeNode', () => {
+    beforeEach(() => {
+      node.state.syncAll = sinon.stub().resolves();
+      sinon.stub(node, 'broadcast');
+      sinon.stub(node, 'join');
+    });
+
     it('should remove the given node', () => {
       node.pool = {
         foo: {
+          pub: 'bar',
           heartbeat: null
         }
       };
 
-      node._removeNode('foo');
-
-      should(node.sockets.sub.disconnect)
-        .be.calledWith('foo');
-      should(node.pool)
-        .be.empty();
-
+      return node._removeNode('foo')
+        .then(() => {
+          should(node.sockets.sub.disconnect)
+            .calledOnce()
+            .calledWith('bar');
+          should(node.pool).be.empty();
+          should(node.broadcast).not.be.called();
+          should(node.join).not.be.called();
+        });
     });
 
     it('should kill itself is the corum is not reached', () => {
       node.config.minimumNodes = 2;
       node.pool = {
         foo: {
+          pub: 'bar',
           heartbeat: null
         }
       };
-      node.broadcast = sinon.spy();
-      node.join = sinon.spy();
 
-      node._removeNode('foo');
-
-      should(node.ready)
-        .be.false();
-      should(node.broadcast)
-        .be.calledWith('cluster:remove', node.uuid);
-      should(node.join)
-        .be.calledOnce();
-
+      return node._removeNode('foo')
+        .then(() => {
+          should(node.pool).be.empty();
+          should(node.ready).be.false();
+          should(node.broadcast)
+            .be.calledOnce()
+            .be.calledWith('cluster:remove', node);
+          should(node.join).be.calledOnce();
+          should(node.sockets.sub.disconnect)
+            .calledOnce()
+            .calledWith('bar');
+        });
     });
   });
 
-  describe('#_sync', () => {
-    it('autorefresh', () => {
-      node._sync({
-        event: 'autorefresh',
-        index: 'index',
-        value: 'value'
-      });
+  // The "sync" function works asynchronously without returning
+  // async handler (promise or callback)
+  // Welcome to setTimeout land!
+  describe('#sync', () => {
+    it('autorefresh', done => {
+      const
+        indexes = ['foo', 'bar', 'baz', 'qux'],
+        hgetallPayload = {};
 
-      const request = node.kuzzle.services.list.storageEngine.setAutoRefresh.firstCall.args[0];
-      should(request.serialize())
-        .match({
-          data: {
-            controller: 'index',
-            action: 'setAutoRefresh',
-            body: {
-              autoRefresh: 'value'
-            }
+      for (const idx of indexes) {
+        hgetallPayload[idx] = Math.random() > .5;
+      }
+
+      node.redis.hgetall.withArgs('cluster:autorefresh').resolves(hgetallPayload);
+
+      node.sync({event: 'autorefresh'});
+
+      setTimeout(() => {
+        try {
+          should(node.kuzzle.services.list.storageEngine.setAutoRefresh.callCount).eql(4);
+
+          for (let i = 0; i < 4; i++) {
+            const request = node.kuzzle.services.list.storageEngine.setAutoRefresh.getCall(i).args[0];
+
+            should(request.serialize()).match({
+              data: {
+                index: indexes[i],
+                controller: 'index',
+                action: 'setAutoRefresh',
+                body: {
+                  autoRefresh: hgetallPayload[indexes[i]]
+                }
+              }
+            });
           }
-        });
+
+          done();
+        } catch (e) {
+          done(e);
+        }
+      }, 100);
     });
 
     it('indexCache:add', () => {
-      node._sync({
+      node.sync({
         event: 'indexCache:add',
         index: 'index',
         collection: 'collection'
       });
 
-      should(node.kuzzle.indexCache.add)
-        .be.calledWith('index', 'collection', false);
+      should(node.kuzzle.indexCache.add).be.calledWith('index', 'collection', false);
     });
 
     it('indexCache:remove', () => {
-      node._sync({
+      node.sync({
         event: 'indexCache:remove',
         index: 'index',
         collection: 'collection'
       });
+
       should(node.kuzzle.indexCache.remove)
         .be.calledWith('index', 'collection', false);
-
     });
 
     it('indexCache:reset', () => {
-      node._sync({
-        event: 'indexCache:reset'
-      });
+      node.sync({event: 'indexCache:reset'});
+
       should(node.kuzzle.indexCache.reset)
         .be.calledOnce();
     });
 
     it('profile', () => {
       node.kuzzle.repositories.profile.profiles.foo = 'bar';
-      node._sync({
+      node.sync({
         event: 'profile',
         id: 'foo'
       });
@@ -433,7 +525,7 @@ describe('node', () => {
 
     it('role', () => {
       node.kuzzle.repositories.role.roles.foo = 'bar';
-      node._sync({
+      node.sync({
         event: 'role',
         id: 'foo'
       });
@@ -442,7 +534,7 @@ describe('node', () => {
     });
 
     it('strategy:added', () => {
-      node._sync({
+      node.sync({
         event: 'strategy:added',
         id: 'foo',
         pluginName: 'plugin',
@@ -455,7 +547,7 @@ describe('node', () => {
 
     it('strategy:removed', () => {
       node.kuzzle.pluginsManager.strategies.name = 'bar';
-      node._sync({
+      node.sync({
         event: 'strategy:removed',
         pluginName: 'pluginName',
         name: 'name'
@@ -464,169 +556,33 @@ describe('node', () => {
         .be.calledWith('pluginName', 'name');
     });
 
-    it('subscriptions', () => {
-      node._syncState = sinon.spy();
-      const data = {
-        event: 'subscriptions',
-        index: 'index',
-        collection: 'collection'
-      };
-      node._sync(data);
-      should(node._syncState)
-        .be.calledWith(data);
+    it('state', () => {
+      node.state.sync = sinon.spy();
+      const data = {event: 'state'};
+
+      node.sync(data);
+      should(node.state.sync).be.calledWith(data);
+    });
+
+    it('state:all', () => {
+      node.state.syncAll = sinon.spy();
+      const data = {event: 'state:all'};
+
+      node.sync(data);
+      should(node.state.syncAll).be.calledWith(data);
+    });
+
+    it('state:reset', () => {
+      node.context.reset = sinon.spy();
+      const data = {event: 'state:reset'};
+
+      node.sync(data);
+      should(node.context.reset).be.calledOnce();
     });
 
     it('validators', () => {
-      node._sync({
-        event: 'validators'
-      });
-      should(node.kuzzle.validation.curateSpecification)
-        .be.calledOnce();
+      node.sync({event: 'validators'});
+      should(node.kuzzle.validation.curateSpecification).be.calledOnce();
     });
-  });
-
-  describe('#_syncState', () => {
-    const state = {
-      autorefresh: {
-        india: 'true',
-        ireland: 'false'
-      },
-      filters: {
-        room1: {
-          index: 'india',
-          collection: 'coimbatore',
-          filters: 'filters:room1'
-        },
-        room2: {
-          index: 'ireland',
-          collection: 'cork',
-          filters: 'filters:room2'
-        },
-        room3: {
-          index: 'india',
-          collection: 'coimbatore',
-          filters: 'filters:room3'
-
-        },
-        room4: {
-          index: 'india',
-          collection: 'cuttak',
-          filters: 'filters:room4'
-        }
-      },
-      hc: {
-        customers: {
-          customer1: {room2: null},
-          customer2: {room4: null}
-        },
-        rooms: {
-          room1: {
-            index: 'india',
-            collection: 'coimbatore',
-            channels: 'channels:room1',
-            customers: [
-              'customer2',
-              'customer4'
-            ]
-          },
-          room2: {
-            index: 'ireland',
-            collection: 'cork',
-            channels: 'channels:room2',
-            customers: [
-              'customer1'
-            ]
-          },
-          room3: {
-            index: 'india',
-            collection: 'coimbatore',
-            channels: 'channels:room3',
-            customers: [
-              'customer3',
-              'customer4'
-            ]
-          },
-          room4: {
-            index: 'india',
-            collection: 'cuttak',
-            channels: 'channels:room4',
-            customers: [
-              'customer4'
-            ]
-          }
-        }
-      }
-    };
-
-    beforeEach(() => {
-      node.redis.clusterState.returns(Bluebird.resolve(JSON.stringify(state)));
-    });
-
-    it('should get a complete snapshot', () => {
-      return node._syncState()
-        .then(() => {
-          for (const roomId of ['room1', 'room2', 'room3', 'room4']) {
-            should(node.kuzzle.hotelClerk.rooms[roomId])
-              .match({
-                id: roomId,
-                index: state.hc.rooms[roomId].index,
-                collection: state.hc.rooms[roomId].collection,
-                channels: state.hc.rooms[roomId].channels,
-                customers: new Set(state.hc.rooms[roomId].customers)
-              });
-
-            should(node.kuzzle.dsl.storage.store)
-              .be.calledWith(state.filters[roomId].index, state.filters[roomId].collection, state.filters[roomId].filters, roomId);
-          }
-
-          should(node.kuzzle.services.list.storageEngine.settings.autoRefresh.india)
-            .be.true();
-          should(node.kuzzle.services.list.storageEngine.settings.autoRefresh.ireland)
-            .be.undefined();
-        });
-    });
-
-    it('should delete non-protected rooms', () => {
-      node.kuzzle.hotelClerk.rooms.toDestroy1 = 'a room';
-      node.kuzzle.hotelClerk.rooms.toDestroy2 = 'another one';
-
-      return node._syncState()
-        .then(() => {
-          should(node.kuzzle.hotelClerk._removeRoomEverywhere)
-            .be.calledWith('toDestroy1')
-            .be.calledWith('toDestroy2');
-        });
-    });
-
-    it('should delete non-protected rooms when syncing a collection', () => {
-      node.kuzzle.hotelClerk.rooms.toDestroy1 = 'a room';
-      node.kuzzle.hotelClerk.rooms.toDestroy2 = 'another one';
-      node.kuzzle.dsl.storage.filtersIndex.index = {collection: ['toDestroy1', 'toDestroy2']};
-
-      return node._syncState({index: 'index', collection: 'collection'})
-        .then(() => {
-          should(node.kuzzle.hotelClerk._removeRoomEverywhere)
-            .be.calledWith('toDestroy1')
-            .be.calledWith('toDestroy2');
-        });
-    });
-
-    it('should not delete a protected room (=being created)', () => {
-      node.kuzzle.hotelClerk.rooms.toDestroy1 = 'a room';
-      node.kuzzle.hotelClerk.rooms.toDestroy2 = 'another one';
-      node.kuzzle.dsl.storage.filtersIndex.index = {collection: ['toDestroy1', 'toDestroy2']};
-      node.pendingRooms.create.toDestroy2 = true;
-
-      return node._syncState({index: 'index', collection: 'collection'})
-        .then(() => {
-          should(node.kuzzle.hotelClerk._removeRoomEverywhere)
-            .be.calledWith('toDestroy1')
-            .not.be.calledWith('toDestroy2');
-        });
-
-    });
-
   });
 });
-
-

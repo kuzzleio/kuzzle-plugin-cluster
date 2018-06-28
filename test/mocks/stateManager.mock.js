@@ -1,0 +1,24 @@
+const
+  sinon = require('sinon');
+
+class StateManagerMock {
+  constructor(node) {
+    this.node = node;
+
+    this.locks = {
+      create: new Set(),
+      delete: new Set()
+    };
+
+    this.sync = sinon.stub().resolves();
+    this.syncAll = sinon.stub().resolves();
+    this.getVersion = sinon.spy();
+    this.reset = sinon.stub().resolves();
+  }
+
+  get kuzzle () {
+    return this.node.kuzzle;
+  }
+}
+
+module.exports = StateManagerMock;

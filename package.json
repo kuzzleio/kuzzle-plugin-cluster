@@ -1,12 +1,13 @@
 {
   "name": "cluster",
   "version": "3.2.1",
-  "description": "Enterprise only - enables Kuzzle cluster mode",
+  "description": "Add cluster capabilities to Kuzzle",
   "main": "./lib/index.js",
   "scripts": {
     "test": "npm run --silent lint && npm run --silent unit-test",
-    "unit-test": "nyc -r lcov -r text-summary _mocha",
-    "lint": "eslint --max-warnings=0 ./lib ./test"
+    "unit-test": "nyc -r lcov -r text-summary mocha",
+    "lint": "eslint --max-warnings=0 ./lib ./test",
+    "codecov": "codecov"
   },
   "repository": {
     "type": "git",
@@ -35,12 +36,13 @@
     "zmq": "^2.15.3"
   },
   "devDependencies": {
-    "eslint": "4.19.1",
+    "codecov": "^3.0.2",
+    "eslint": "5.0.1",
     "mocha": "^5.2.0",
     "mock-require": "^3.0.2",
     "nyc": "^12.0.2",
     "should": "^13.2.1",
     "should-sinon": "0.0.6",
-    "sinon": "^5.0.10"
+    "sinon": "^6.0.1"
   }
 }
