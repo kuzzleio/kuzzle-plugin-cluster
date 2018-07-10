@@ -71,9 +71,9 @@ class KuzzleMock {
     };
 
     this.pluginsManager = {
-      registerStrategy: sinon.spy(),
+      registerStrategy: sinon.stub(),
       strategies: {},
-      unregisterStrategy: sinon.spy()
+      unregisterStrategy: sinon.stub()
     };
 
     this.realtime = {

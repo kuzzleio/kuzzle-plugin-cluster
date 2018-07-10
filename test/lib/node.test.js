@@ -534,26 +534,41 @@ describe('node', () => {
     });
 
     it('strategy:added', () => {
-      node.sync({
+      const strategyEvent = {
         event: 'strategy:added',
-        id: 'foo',
         pluginName: 'plugin',
         name: 'bar',
         strategy: 'strategy'
-      });
+      };
+
+      node.sync(strategyEvent);
       should(node.kuzzle.pluginsManager.registerStrategy)
         .be.calledWith('plugin', 'bar', 'strategy');
+
+      node.kuzzle.pluginsManager.registerStrategy.throws(new Error('foobar'));
+      should(() => node.sync(strategyEvent)).not.throw();
+      should(cluster.log)
+        .calledOnce()
+        .calledWith('error', 'Plugin plugin - tried to add the strategy "bar": foobar');
     });
 
     it('strategy:removed', () => {
-      node.kuzzle.pluginsManager.strategies.name = 'bar';
-      node.sync({
+      const strategyEvent = {
         event: 'strategy:removed',
         pluginName: 'pluginName',
         name: 'name'
-      });
+      };
+
+      node.sync(strategyEvent);
       should(node.kuzzle.pluginsManager.unregisterStrategy)
-        .be.calledWith('pluginName', 'name');
+        .calledOnce()
+        .calledWith('pluginName', 'name');
+
+      node.kuzzle.pluginsManager.unregisterStrategy.throws(new Error('foobar'));
+      should(() => node.sync(strategyEvent)).not.throw();
+      should(cluster.log)
+        .calledOnce()
+        .calledWith('error', 'Plugin pluginName - tried to remove the strategy "name": foobar');
     });
 
     it('state', () => {
