@@ -1,11 +1,12 @@
+[![Build Status](https://travis-ci.org/kuzzleio/kuzzle-plugin-cluster.svg?branch=master)](https://travis-ci.org/kuzzleio/kuzzle-plugin-cluster) [![codecov.io](http://codecov.io/github/kuzzleio/kuzzle-plugin-cluster/coverage.svg?branch=master)](http://codecov.io/github/kuzzleio/kuzzle-plugin-cluster?branch=master)
 
 # Cluster mode plugin
 
 This plugin adds a cluster mode to Kuzzle.
 
-## Compatiblity
+## Compatibility
 
-Kuzzle: >=1.3.0 (commit ee04f8e)
+Kuzzle: >=1.4.0
 
 ## Try it
 
