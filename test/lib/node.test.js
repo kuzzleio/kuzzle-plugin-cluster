@@ -114,8 +114,8 @@ describe('node', () => {
       node._addNode = sinon.spy();
 
       node.redis.smembers.resolves(['"foo"', '"bar"']);
-      node.redis.scan.onFirstCall().resolves({newCursor: 1, keys: ['baz', 'zab']});
-      node.redis.scan.onSecondCall().resolves({newCursor: 0, keys: ['qux']});
+      node.redis.scan.onFirstCall().resolves([1, ['baz', 'zab']]);
+      node.redis.scan.onSecondCall().resolves([0, ['qux']]);
 
       return node.discover()
         .then(() => {
