@@ -36,14 +36,9 @@
         "host": "redis",
         "port": 6379
       }
-    },
-    "internalBroker": {
-      "socket": false,
-      "port": 7513
     }
   },
   "server": {
     "accessLogIpOffset": 1
   }
 }
-

@@ -19,22 +19,34 @@
  * limitations under the License.
  */
 
-
 const
   Bluebird = require('bluebird'),
+  getBuiltinCommands = (require('ioredis')({lazyConnect: true})).getBuiltinCommands,
+  redisCommands = getBuiltinCommands(),
   sinon = require('sinon');
+
+const sandbox = sinon.createSandbox().usingPromise(Bluebird);
 
 class RedisMock {
   constructor (config) {
     this.config = config;
 
-    this.clusterReset = sinon.stub().returns(Bluebird.resolve());
-    this.clusterState = sinon.stub().returns(Bluebird.resolve());
-    this.clusterSubOn = sinon.stub().returns(Bluebird.resolve());
-    this.clusterSubOff = sinon.stub().returns(Bluebird.resolve());
-    this.defineCommand = sinon.spy();
-    this.hset = sinon.stub().returns(Bluebird.resolve());
-    this.sadd = sinon.stub().returns(Bluebird.resolve());
+    for (const command of redisCommands) {
+      this[command] = sandbox.stub().resolves();
+    }
+
+    this.clusterReset = sandbox.stub().resolves();
+    this.clusterState = sandbox.stub().resolves([null, [
+      ['foo', '{}', 3],
+      ['bar', '{"exists": {"foo": "bar"}}', 2]
+    ]]);
+    this.clusterSubOn = sandbox.stub().resolves([1, 1, {}]);
+    this.clusterSubOff = sandbox.stub().resolves();
+    this.defineCommand = sandbox.stub();
+  }
+
+  Cluster (config) {
+    this.config = config;
   }
 }
 

@@ -1,7 +1,4 @@
 {
-  "dump": {
-    "enabled": false
-  },
   "limits": {
     "subscriptionMinterms": 1000
   },
@@ -58,14 +55,6 @@
           "port": 6379
         }
       ]
-    },
-    "internalBroker": {
-      "socket": false,
-      "port": 7513
     }
-  },
-  "server": {
-    "accessLogIpOffset": 1
   }
 }
-

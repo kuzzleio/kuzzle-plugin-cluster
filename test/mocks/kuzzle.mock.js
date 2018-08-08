@@ -35,6 +35,10 @@ class KuzzleMock {
       }
     };
 
+    this.context = {
+      errors: {}
+    };
+
     this.dsl = {
       storage: {
         filtersIndex: {},
@@ -62,17 +66,22 @@ class KuzzleMock {
     };
 
     this.notifier = {
-      _dispatch: sinon.spy()
+      _notifyDocument: sinon.stub(),
+      _notifyUser: sinon.stub()
     };
 
     this.pluginsManager = {
-      registerStrategy: sinon.spy(),
+      registerStrategy: sinon.stub(),
       strategies: {},
-      unregisterStrategy: sinon.spy()
+      unregisterStrategy: sinon.stub()
     };
 
     this.realtime = {
-      storage: {}
+      storage: {
+        filtersIndex: {},
+        filters: {},
+      },
+      store: sinon.stub()
     };
 
     this.repositories = {

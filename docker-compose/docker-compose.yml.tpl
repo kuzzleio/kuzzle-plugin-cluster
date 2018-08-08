@@ -70,6 +70,8 @@ services:
   kuzzle:
     build: ./images/kuzzle
     command: sh -c 'chmod 755 /scripts/run.sh && /scripts/run.sh'
+    cap_add:
+      - SYS_PTRACE
     volumes:
       ${KUZ_VOLUME}
       - ..:/var/app/plugins/enabled/cluster
@@ -96,6 +98,8 @@ services:
 
   elasticsearch:
     image: kuzzleio/elasticsearch:5.4.1
+    ulimits:
+      nofile: 65536
     environment:
       cluster.name: kuzzle
 

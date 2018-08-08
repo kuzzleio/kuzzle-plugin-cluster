@@ -21,8 +21,8 @@
 
 
 const
-  Bluebird = require('bluebird'),
-  sinon = require('sinon');
+  sinon = require('sinon'),
+  StateManagerMock = require('../mocks/stateManager.mock');
 
 class NodeMock {
   constructor (cluster) {
@@ -33,9 +33,11 @@ class NodeMock {
       delete: {}
     };
 
+    this.state = new StateManagerMock(this);
+
     this._syncState = sinon.spy();
     this.broadcast = sinon.spy();
-    this.init = sinon.stub().returns(Bluebird.resolve());
+    this.init = sinon.stub().resolves();
   }
 
   get config () {
