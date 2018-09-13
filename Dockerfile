@@ -1,4 +1,4 @@
-FROM kuzzleio/kuzzle
+FROM kuzzleio/kuzzle:1.2.13
 
 LABEL "io.kuzzle.vendor"="Kuzzle"
 
@@ -19,8 +19,4 @@ RUN  set -x \
   && npm install --unsafe-perm \
   && cp docker-compose/config/kuzzlerc.prod /etc/kuzzlerc \
   && cd /var/app \
-  \
-  && apt-get remove --purge --auto-remove -y \
-    build-essential \
-  \
   && echo done
