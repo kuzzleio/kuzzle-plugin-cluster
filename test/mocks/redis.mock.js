@@ -21,7 +21,8 @@
 
 const
   Bluebird = require('bluebird'),
-  getBuiltinCommands = (require('ioredis')({lazyConnect: true})).getBuiltinCommands,
+  IORedis = require('ioredis'),
+  getBuiltinCommands = (new IORedis({lazyConnect: true})).getBuiltinCommands,
   redisCommands = getBuiltinCommands(),
   sinon = require('sinon');
 
