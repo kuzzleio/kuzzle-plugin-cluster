@@ -207,7 +207,7 @@ describe('node', () => {
 
   describe('#_addNode', () => {
     beforeEach(() => {
-      sinon.stub(node, '_heartbeat');
+      sinon.stub(node, '_onHeartbeat');
     });
 
     it('should do nothing if the node is already registered', () => {
@@ -223,14 +223,14 @@ describe('node', () => {
 
       should(node.sockets.sub.connect)
         .be.calledWith('foo');
-      should(node._heartbeat)
+      should(node._onHeartbeat)
         .be.calledWith({pub: 'foo'});
       should(node.pool.foo)
         .eql({pub: 'foo'});
     });
   });
 
-  describe('#_heartbeat', () => {
+  describe('#_onHeartbeat', () => {
 
 
   });
@@ -251,9 +251,9 @@ describe('node', () => {
 
   describe('#_onSubMessage', () => {
     it('cluster:heartbeat', () => {
-      node._heartbeat = sinon.spy();
+      node._onHeartbeat = sinon.spy();
       node._onSubMessage(JSON.stringify(['cluster:heartbeat', 'data']));
-      should(node._heartbeat)
+      should(node._onHeartbeat)
         .be.calledWith('data');
     });
 
