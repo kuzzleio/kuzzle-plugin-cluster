@@ -1,6 +1,6 @@
 {
   "name": "cluster",
-  "version": "3.2.5",
+  "version": "3.2.6",
   "description": "Add cluster capabilities to Kuzzle",
   "main": "./lib/index.js",
   "scripts": {
