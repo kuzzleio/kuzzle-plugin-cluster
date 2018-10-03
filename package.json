@@ -37,12 +37,12 @@
   },
   "devDependencies": {
     "codecov": "^3.1.0",
-    "eslint": "5.5.0",
+    "eslint": "5.6.1",
     "mocha": "^5.2.0",
     "mock-require": "^3.0.2",
     "nyc": "^13.0.1",
     "should": "^13.2.3",
     "should-sinon": "0.0.6",
-    "sinon": "^6.3.1"
+    "sinon": "^6.3.4"
   }
 }
