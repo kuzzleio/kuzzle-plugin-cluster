@@ -93,8 +93,6 @@ services:
     build: ./redis-cluster-init
     depends_on:
       - redis
-    command: cluster_redis_1 cluster_redis_2 cluster_redis_3
-
 
   elasticsearch:
     image: kuzzleio/elasticsearch:5.4.1
