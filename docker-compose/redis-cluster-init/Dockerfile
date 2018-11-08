@@ -1,9 +1,9 @@
-FROM ruby
-MAINTAINER Kuzzle <support@kuzzle.io>
+FROM redis:5.0-alpine
 
-RUN  gem install redis \
-  && curl -SLO http://download.redis.io/redis-stable/src/redis-trib.rb \
-  && chmod a+x redis-trib.rb
+LABEL io.kuzzle.vendor="Kuzzle <support@kuzzle.io>"
+
+RUN  set -x \
+  && apk add --no-cache bind-tools
 
 COPY docker-entrypoint.sh /
 

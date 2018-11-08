@@ -1,15 +1,16 @@
-#!/bin/bash
+#!/bin/bash 
 
-for container in $(docker ps | grep cluster_kuzzle_ | sed -E 's#^([^ ]+).*#\1#'); do
+for container in $(docker ps | grep kuzzle_ | awk '{ print $1 }'); do
   name=$(docker inspect --format '{{.Name}}' "$container")
-
+  network=$(docker inspect --format '{{.HostConfig.NetworkMode}}' $container)
   ip=$(docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$container")
 
-  url=$(docker exec -t ${container} bash -c 'zgrep devtools /root/.pm2/logs/*.log | tail -n 1')
-  url=$(echo $url | sed -E 's|[^ ]+\s+||')
-  url=$(echo $url | sed -E "s|\&ws=127\.0\.0\.1|\&ws=${ip}|")
+  id=$(docker run -ti \
+    --network $network \
+      endeveit/docker-jq ash -c \
+      "curl -s http://$ip:9229/json/list | jq -Mrce '.[0].id'")
+  url="chrome-devtools://devtools/bundled/inspector.html?experiments=true&v8only=true&ws=$ip:9229/$id"
 
-  echo "$name"
-  echo "$url"
+  echo "  $name"
+  echo "  $url"
 done
-
