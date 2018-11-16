@@ -27,7 +27,7 @@ services:
       c2c_consul__host: consul
 
   haproxy:
-    image: haproxy:1.7-alpine
+    image: haproxy:1.8-alpine
     command: sh -c 'exec tail -f /dev/null'
     container_name: haproxy
     ports:

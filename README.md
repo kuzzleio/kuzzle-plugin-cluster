@@ -61,6 +61,7 @@ In other words, when adding a node to the cluster, haproxy (at least up to curre
 * [http://localhost:7512/_plugin/cluster/status] => cluster status
 * `curl -XPOST http://localhost:7512/_plugin/cluster/reset` => resets redis state and force a new sync (blanks cluster state)
 * [http://localhost:7512/cluster_kuzzle_1/] prefixing the url by the container name lets you access it directly
+* `bash docker-compose/scripts/devtools.sh` dumps to the standard output the urls to copy/paste in Google Chrome to live-debug the nodes
 
 ## Configuration
 
