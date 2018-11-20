@@ -1,4 +1,4 @@
-FROM kuzzleio/kuzzle:1.2.13
+FROM kuzzleio/kuzzle
 
 LABEL "io.kuzzle.vendor"="Kuzzle"
 
