@@ -14,9 +14,6 @@
     "cluster": {
       "privileged": true,
       "minimumNodes": 2
-    },
-    "kuzzle-plugin-logger": {
-      "threads": false
     }
   },
   "services": {
@@ -39,6 +36,18 @@
     }
   },
   "server": {
-    "accessLogIpOffset": 1
+    "logs": {
+      "transports": [
+        {
+          "transport": "console",
+          "level": "info",
+          "stderrLevels": [],
+          "format": "simple",
+          "silent": false
+        }
+      ],
+      "accessLogFormat": "combined",
+      "accessLogIpOffset": 0
+    }
   }
 }

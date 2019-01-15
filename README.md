@@ -43,24 +43,11 @@ Each update on either Kuzzle or the cluster source should automatically restart 
 
 `sudo sysctl -w fs.inotify.max_user_watches=524288`
 
-### nginx vs haproxy
-
-The development stack exposes 2 reverse proxies:
-
-* nginx on port 7512
-* haproxy on port 7513
-
-haproxy configuration includes some more advanced health checks, which are only partly available in the commercial version of nginx.
-In counterpart, nginx currently offers a big advantage over haproxy in being able to hot reload its configuration without killing current connections.
-
-In other words, when adding a node to the cluster, haproxy (at least up to current version 1.7) will disconnect all clients, while nginx won't.
-
 ### Goodies
 
-* [http://localhost:7575/hastats] (kuzzle/kuzzle) => haproxy stats page
 * [http://localhost:7512/_plugin/cluster/status] => cluster status
 * `curl -XPOST http://localhost:7512/_plugin/cluster/reset` => resets redis state and force a new sync (blanks cluster state)
-* [http://localhost:7512/cluster_kuzzle_1/] prefixing the url by the container name lets you access it directly
+* `bash docker-compose/scripts/devtools.sh` dumps to the standard output the urls to copy/paste in Google Chrome to live-debug the nodes
 
 ## Configuration
 
