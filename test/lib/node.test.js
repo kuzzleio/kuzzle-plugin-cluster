@@ -446,7 +446,7 @@ describe('node', () => {
   // async handler (promise or callback)
   // Welcome to setTimeout land!
   describe('#sync', () => {
-    it('autorefresh', done => {
+    it('autorefresh', () => {
       const
         indexes = ['foo', 'bar', 'baz', 'qux'],
         hgetallPayload = {};
@@ -457,10 +457,8 @@ describe('node', () => {
 
       node.redis.hgetall.withArgs('cluster:autorefresh').resolves(hgetallPayload);
 
-      node.sync({event: 'autorefresh'});
-
-      setTimeout(() => {
-        try {
+      return node.sync({event: 'autorefresh'})
+        .then(() => {
           should(node.kuzzle.services.list.storageEngine.setAutoRefresh.callCount).eql(4);
 
           for (let i = 0; i < 4; i++) {
@@ -477,12 +475,7 @@ describe('node', () => {
               }
             });
           }
-
-          done();
-        } catch (e) {
-          done(e);
-        }
-      }, 100);
+        });
     });
 
     it('indexCache:add', () => {
@@ -533,42 +526,37 @@ describe('node', () => {
         .be.empty();
     });
 
-    it('strategy:added', () => {
+    it('strategies', () => {
       const strategyEvent = {
-        event: 'strategy:added',
-        pluginName: 'plugin',
-        name: 'bar',
-        strategy: 'strategy'
+        event: 'strategies'
       };
 
-      node.sync(strategyEvent);
-      should(node.kuzzle.pluginsManager.registerStrategy)
-        .be.calledWith('plugin', 'bar', 'strategy');
-
-      node.kuzzle.pluginsManager.registerStrategy.throws(new Error('foobar'));
-      should(() => node.sync(strategyEvent)).not.throw();
-      should(cluster.log)
-        .calledOnce()
-        .calledWith('error', 'Plugin plugin - tried to add the strategy "bar": foobar');
-    });
-
-    it('strategy:removed', () => {
-      const strategyEvent = {
-        event: 'strategy:removed',
-        pluginName: 'pluginName',
-        name: 'name'
+      node.kuzzle.pluginsManager.listStrategies.returns(['toDelete', 'anotherOne', 'strategyName']);
+      node.kuzzle.pluginsManager.strategies = {
+        toDelete: {owner: 'foo'},
+        anotherOne: {owner: 'bar'}
       };
+      node.redis.hgetall.withArgs('cluster:strategies').resolves({
+        strategyName: JSON.stringify({
+          plugin: 'plugin',
+          strategy: 'strategy'
+        })
+      });
 
-      node.sync(strategyEvent);
-      should(node.kuzzle.pluginsManager.unregisterStrategy)
-        .calledOnce()
-        .calledWith('pluginName', 'name');
+      return node.sync(strategyEvent)
+        .then(() => {
+          should(node.redis.hgetall)
+            .be.calledWith('cluster:strategies');
 
-      node.kuzzle.pluginsManager.unregisterStrategy.throws(new Error('foobar'));
-      should(() => node.sync(strategyEvent)).not.throw();
-      should(cluster.log)
-        .calledOnce()
-        .calledWith('error', 'Plugin pluginName - tried to remove the strategy "name": foobar');
+          should(node.kuzzle.pluginsManager.registerStrategy)
+            .be.calledWith('plugin', 'strategyName', 'strategy');
+
+          should(node.kuzzle.pluginsManager.unregisterStrategy)
+            .be.calledTwice()
+            .be.calledWith('foo', 'toDelete')
+            .be.calledWith('bar', 'anotherOne');
+
+        });
     });
 
     it('state', () => {

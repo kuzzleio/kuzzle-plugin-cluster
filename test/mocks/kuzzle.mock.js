@@ -71,6 +71,7 @@ class KuzzleMock {
     };
 
     this.pluginsManager = {
+      listStrategies: sinon.stub().returns([]),
       registerStrategy: sinon.stub(),
       strategies: {},
       unregisterStrategy: sinon.stub()

@@ -198,9 +198,53 @@ describe('index', () => {
         should(cluster.hooks['core:kuzzleStart'])
           .eql('kuzzleStarted');
 
-        cluster.kuzzleStarted();
-        should(cluster.node.init)
-          .be.calledOnce();
+        cluster._realtimeCountOverride = sinon.stub();
+        cluster._realtimeListOverride = sinon.stub();
+
+        cluster.kuzzle.pluginsManager.strategies = {
+          local: {
+            strategy: 'localStrategy',
+            methods: 'localMethods',
+            owner: 'pluginName'
+          },
+          anotherAuth: {
+            strategy: 'otherStrategy',
+            methods: 'otherMethods',
+            owner: 'otherPluginName'
+          }
+        };
+        cluster.kuzzle.pluginsManager.listStrategies.returns(Object.keys(cluster.kuzzle.pluginsManager.strategies));
+
+        return cluster.kuzzleStarted()
+          .then(() => {
+            // overrides
+            cluster.kuzzle.funnel.controllers.realtime.count('foo');
+            should(cluster._realtimeCountOverride)
+              .be.calledOnce()
+              .be.calledWith('foo');
+
+            cluster.kuzzle.funnel.controllers.realtime.list('foo');
+            should(cluster._realtimeListOverride)
+              .be.calledOnce()
+              .be.calledWith('foo');
+
+            should(cluster.redis.hset)
+              .be.calledTwice()
+              .be.calledWith('cluster:strategies', 'local', JSON.stringify({
+                plugin: 'pluginName',
+                strategy: 'localStrategy'
+              }))
+              .be.calledWith('cluster:strategies', 'anotherAuth', JSON.stringify({
+                plugin: 'otherPluginName',
+                strategy: 'otherStrategy'
+              }));
+
+            should(cluster._isKuzzleStarted)
+              .be.true();
+
+            should(cluster.node.init)
+              .be.calledOnce();
+          });
       });
     });
 
@@ -264,16 +308,29 @@ describe('index', () => {
     });
 
     describe('#strategyAdded', () => {
-      it('should broadcast changes', () => {
+      it('should persist the strategy to redis and broadcast changes', () => {
         should(cluster.hooks['core:auth:strategyAdded'])
           .eql('strategyAdded');
 
-        cluster.strategyAdded({foo: 'bar'});
-        should(cluster.node.broadcast)
-          .be.calledWith('cluster:sync', {
-            event: 'strategy:added',
-            foo: 'bar'
+        return cluster.strategyAdded({
+          name: 'name',
+          pluginName: 'plugin',
+          strategy: 'strategy'
+        })
+          .then(() => {
+            should(cluster.redis.hset)
+              .be.calledOnce()
+              .be.calledWith('cluster:strategies', 'name', JSON.stringify({
+                plugin: 'plugin',
+                strategy: 'strategy'
+              }));
+
+            should(cluster.node.broadcast)
+              .be.calledWith('cluster:sync', {
+                event: 'strategies'
+              });
           });
+
       });
     });
 
@@ -282,11 +339,18 @@ describe('index', () => {
         should(cluster.hooks['core:auth:strategyRemoved'])
           .eql('strategyRemoved');
 
-        cluster.strategyRemoved({foo: 'bar'});
-        should(cluster.node.broadcast)
-          .be.calledWith('cluster:sync', {
-            event: 'strategy:removed',
-            foo: 'bar'
+        return cluster.strategyRemoved({
+          name: 'name'
+        })
+          .then(() => {
+            should(cluster.redis.hdel)
+              .be.calledOnce()
+              .be.calledWith('cluster:strategies', 'name');
+
+            should(cluster.node.broadcast)
+              .be.calledWith('cluster:sync', {
+                event: 'strategies'
+              });
           });
       });
     });

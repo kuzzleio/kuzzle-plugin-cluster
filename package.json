@@ -25,24 +25,24 @@
   },
   "homepage": "https://github.com/kuzzleio/kuzzle-plugin-cluster#readme",
   "dependencies": {
-    "bluebird": "^3.5.2",
-    "debug": "^4.0.1",
-    "ioredis": "^4.0.0",
+    "bluebird": "^3.5.3",
+    "debug": "^4.1.1",
+    "ioredis": "^4.9.0",
     "ip": "^1.1.5",
-    "kuzzle-common-objects": "^3.0.13",
+    "kuzzle-common-objects": "^3.0.14",
     "lodash": "^4.17.11",
     "request": "^2.88.0",
     "uuid": "^3.3.2",
     "zmq": "^2.15.3"
   },
   "devDependencies": {
-    "codecov": "^3.1.0",
-    "eslint": "5.6.1",
-    "mocha": "^5.2.0",
-    "mock-require": "^3.0.2",
-    "nyc": "^13.0.1",
+    "codecov": "^3.2.0",
+    "eslint": "5.16.0",
+    "mocha": "^6.0.2",
+    "mock-require": "^3.0.3",
+    "nyc": "^13.3.0",
     "should": "^13.2.3",
     "should-sinon": "0.0.6",
-    "sinon": "^6.3.4"
+    "sinon": "^7.3.1"
   }
 }
