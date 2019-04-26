@@ -1,30 +1,48 @@
-dist: trusty
+dist: xenial
 sudo: required
 group: edge
 node_js: "8"
-jdk: oraclejdk8
+jdk: openjdk8
 
 services:
-- docker
+  - docker
 
 install:
-- sudo apt update
-- sudo apt install -y build-essential python-dev libzmq3-dev
+  - sudo apt update
+  - sudo apt install -y build-essential python-dev libzmq3-dev
 
-script:
-- npm install --unsafe-perm
-- npm test
-- npm run codecov
-- bash test/travis-bin/sonar.sh
+jobs:
+  include:
+
+    - name: Unit tests
+      if: type = pull_request OR type = cron OR type = push AND branch =~ ^master|.*-dev
+      script:
+        - npm install --unsafe-perm
+        - npm test
+        - npm run codecov
+        - bash test/travis-bin/sonar.sh
+
+    - name: Functional tests
+      if: type = cron OR (type = push OR type = pull_request) AND branch =~ ^master|.*-dev
+      env:
+        - DOCKER_COMPOSE_VERSION=1.24.0
+      before_install:
+        - sudo rm /usr/local/bin/docker-compose
+        - sudo curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
+        - sudo chmod +x /usr/local/bin/docker-compose
+        - sudo sysctl -w vm.max_map_count=262144
+        - sudo sysctl -w fs.inotify.max_user_watches=524288
+      script:
+        - bash test/travis-bin/functional-tests.sh
 
 notifications:
   webhooks:
     urls:
-    - https://webhooks.gitter.im/e/8e145155fbaaf37cffea
+      - https://webhooks.gitter.im/e/8e145155fbaaf37cffea
     on_success: change
     on_failure: always
     on_start: never
   email: false
 
 addons:
-  sonarqube: true
+  sonarcloud: true
