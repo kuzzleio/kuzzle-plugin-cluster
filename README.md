@@ -53,7 +53,7 @@ The cluster needs to be installed as a plugin. Please refer to [Kuzzle documenta
 ### Network ports
 
 By default, Kuzzle nodes communicate with each other using two channels on ports `7510` and `7511`.  
-**NB**: These ports are used by the cluster only and do not need to be publicly exposed.
+**NB: These ports are used by the cluster only and do not need to be publicly exposed.**
 
 You can configure the ports used in the `bindings` section of the plugin configuration (cf [below](#configuration)).
 
