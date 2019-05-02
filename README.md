@@ -16,7 +16,7 @@ To run a kuzzle stack, you can use the provided compose file:
 docker-compose up --scale kuzzle=3
 ```
 
-NB: This compose stack is for tests and development only and should not be used as-is on production.  
+**NB: This compose stack is for tests and development only and should not be used as-is on production. ** 
 
 ## Run a development stack
 
