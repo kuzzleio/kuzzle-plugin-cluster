@@ -25,8 +25,8 @@ const
   StateManagerMock = require('../mocks/stateManager.mock');
 
 class NodeMock {
-  constructor (cluster) {
-    this.cluster = cluster;
+  constructor (context) {
+    this.context = context;
 
     this.pendingRooms = {
       create: {},
@@ -38,10 +38,19 @@ class NodeMock {
     this._syncState = sinon.spy();
     this.broadcast = sinon.spy();
     this.init = sinon.stub().resolves();
+    this.sync = sinon.stub().resolves();
   }
 
   get config () {
-    return this.cluster.config;
+    return this.context.config;
+  }
+
+  get kuzzle () {
+    return this.context.kuzzle;
+  }
+
+  get redis () {
+    return this.context.redis;
   }
 }
 

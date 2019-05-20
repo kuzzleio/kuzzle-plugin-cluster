@@ -12,7 +12,7 @@ class StateManagerMock {
 
     this.sync = sinon.stub().resolves();
     this.syncAll = sinon.stub().resolves();
-    this.getVersion = sinon.spy();
+    this.getVersion = sinon.stub();
     this.reset = sinon.stub().resolves();
   }
 

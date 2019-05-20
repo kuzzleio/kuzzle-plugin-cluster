@@ -39,14 +39,6 @@ class KuzzleMock {
       errors: {}
     };
 
-    this.dsl = {
-      storage: {
-        filtersIndex: {},
-        filters: {},
-        store: sinon.spy()
-      }
-    };
-
     this.funnel = {
       controllers: {
         realtime: { }
@@ -65,6 +57,10 @@ class KuzzleMock {
       reset: sinon.spy()
     };
 
+    this.janitor = {
+      dump: sinon.spy()
+    };
+
     this.notifier = {
       _notifyDocument: sinon.stub(),
       _notifyUser: sinon.stub()
@@ -78,11 +74,13 @@ class KuzzleMock {
     };
 
     this.realtime = {
+      getFilterIds: sinon.stub(),
+      hasFilter: sinon.stub(),
+      remove: sinon.stub(),
+      store: sinon.stub(),
       storage: {
-        filtersIndex: {},
-        filters: {},
-      },
-      store: sinon.stub()
+        remove: sinon.stub()
+      }
     };
 
     this.repositories = {
@@ -106,7 +104,7 @@ class KuzzleMock {
     };
 
     this.validation = {
-      curateSpecification: sinon.spy()
+      curateSpecification: sinon.stub().resolves()
     };
 
   }

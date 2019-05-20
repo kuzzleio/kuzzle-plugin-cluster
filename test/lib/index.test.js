@@ -26,6 +26,7 @@ const
   NodeMock = require('../mocks/node.mock'),
   RedisMock = require('../mocks/redis.mock'),
   {
+    BadRequestError,
     NotFoundError
   } = require('kuzzle-common-objects').errors,
   Request = require('kuzzle-common-objects').Request,
@@ -51,6 +52,7 @@ describe('index', () => {
         kuzzle: new KuzzleMock(),
       },
       errors: {
+        BadRequestError,
         NotFoundError
       }
     };
@@ -119,6 +121,51 @@ describe('index', () => {
     beforeEach(() => {
       cluster.init({}, context);
       cluster.node.ready = true;
+    });
+
+    describe('#beforeJoin', () => {
+      it('should create the room in the hotel clerk', done => {
+        cluster._rooms.flat.roomId = {
+          index: 'index',
+          collection: 'collection'
+        };
+
+        cluster.beforeJoin(new Request({
+          controller: 'realtime',
+          action: 'join',
+          body: {
+            roomId: 'roomId'
+          }
+        }), () => {
+          should(cluster.kuzzle.hotelClerk.rooms.roomId).eql({
+            index: 'index',
+            collection: 'collection',
+            id: 'roomId',
+            customers: new Set(),
+            channels: {}
+          });
+
+          done();
+        });
+      });
+
+      it('should retry once if the room is not found', done => {
+        const spy = sinon.spy(cluster, 'beforeJoin');
+        cluster.config.timers.waitForMissingRooms = 0;
+
+        cluster.beforeJoin(new Request({
+          controller: 'realtime',
+          action: 'join',
+          body: {
+            roomId: 'roomId'
+          }
+        }), () => {
+          should(spy)
+            .be.calledTwice();
+
+          done();
+        });
+      });
     });
 
     describe('#autorefreshUpdated', () => {
@@ -446,6 +493,7 @@ describe('index', () => {
         should(cluster.hooks['core:hotelClerk:removeRoomForCustomer'])
           .eql('subscriptionOff');
 
+        cluster.node.state.getVersion.returns(1);
         cluster.kuzzle.hotelClerk.rooms.roomId = {
           id: 'roomId',
           customers: new Set(['customer', 'customers2']),
@@ -453,7 +501,7 @@ describe('index', () => {
           index: 'index',
           collection: 'collection'
         };
-        cluster.redis.clusterSubOff.resolves(['index', 'collection', 'debug']);
+        cluster.redis.clusterSubOff.resolves([42, '0', 'debug']);
 
         return cluster.subscriptionOff({
           room: cluster.kuzzle.hotelClerk.rooms.roomId,
@@ -470,6 +518,9 @@ describe('index', () => {
                 'connectionId'
               );
 
+            should(cluster.redis.srem)
+              .be.calledWith('cluster:room_ids', 'roomId');
+
             should(cluster.node.broadcast)
               .be.calledWith('cluster:sync', {
                 index: 'index',
@@ -480,6 +531,7 @@ describe('index', () => {
               });
           });
       });
+
     });
 
     describe('#refreshSpecifications', () => {
@@ -510,6 +562,49 @@ describe('index', () => {
       });
     });
 
+    describe('#dump', () => {
+      it('should do nothing if the node is not ready', () => {
+        cluster.node.ready = false;
+
+        cluster.dump('request');
+
+        should(cluster.node.broadcast)
+          .not.be.called();
+      });
+
+      it('should broadcast the event', () => {
+        should(cluster.hooks['admin:afterDump'])
+          .eql('dump');
+
+        cluster.dump(new Request({
+          suffix: 'suffix'
+        }));
+
+        should(cluster.node.broadcast)
+          .be.calledWith('cluster:admin:dump', {suffix: 'suffix'});
+      });
+    });
+
+    describe('#shutdown', () => {
+      it('should do nothing if the node is not ready', () => {
+        cluster.node.ready = false;
+
+        cluster.shutdown();
+
+        should(cluster.node.broadcast)
+          .not.be.called();
+      });
+
+      it('should broadcast the shutdown event', () => {
+        should(cluster.hooks['admin:afterShutdown'])
+          .eql('shutdown');
+
+        cluster.shutdown();
+
+        should(cluster.node.broadcast)
+          .be.calledWith('cluster:admin:shutdown');
+      });
+    });
   });
 
   describe('#controller', () => {
@@ -631,6 +726,299 @@ describe('index', () => {
             should(cluster.node.broadcast)
               .be.calledWith('cluster:sync', {event: 'state:reset'});
           });
+      });
+    });
+  });
+
+  describe('#internal', () => {
+    beforeEach(() => {
+      cluster.init({}, context);
+      cluster.node.ready = true;
+    });
+
+    describe('#cleanNode', () => {
+      it('should reset if being the last node alive', () => {
+        cluster.node.pool = {};
+
+        return cluster.cleanNode(cluster.node)
+          .then(() => {
+            should(cluster.redis.srem)
+              .be.calledWith('cluster:discovery', JSON.stringify({
+                pub: cluster.node.pub,
+                router: cluster.node.router
+              }));
+
+            should(cluster.node.state.reset)
+              .be.calledOnce();
+
+            should(cluster.node.broadcast)
+              .be.calledWith('cluster:sync', {event: 'state:all'});
+          });
+      });
+
+      it('should should clean node for each impacted index/collection tuple', () => {
+        cluster.node.pool = {foo: 'bar'};
+        cluster._rooms = {
+          tree: {
+            i1: {
+              col1: {},
+              col2: {}
+            },
+            i2: {
+              col3: {}
+            }
+          }
+        };
+
+        cluster.redis.clusterCleanNode.onFirstCall().resolves(['version', ['roomId']]);
+        cluster.redis.clusterCleanNode.onSecondCall().resolves(['version', []]);
+        cluster.redis.clusterCleanNode.onThirdCall().resolves(['version', ['foo', 'bar']]);
+
+        return cluster.cleanNode(cluster.node)
+          .then(() => {
+            should(cluster.redis.srem)
+              .be.calledWith('cluster:discovery', JSON.stringify({
+                pub: cluster.node.pub,
+                router: cluster.node.router
+              }));
+
+            should(cluster.redis.clusterCleanNode)
+              .be.calledThrice()
+              .be.calledWith('{i1/col1}', cluster.node.uuid)
+              .be.calledWith('{i1/col2}', cluster.node.uuid)
+              .be.calledWith('{i2/col3}', cluster.node.uuid);
+
+            should(cluster.redis.srem)
+              .be.calledWith('cluster:room_ids', ['roomId', 'foo', 'bar']);
+          });
+
+      });
+    });
+
+    describe('#deleteRoomCount', () => {
+      it('should delete the room from the list', () => {
+        cluster._rooms = {
+          flat: {
+            roomId: {
+              index: 'index',
+              collection: 'collection'
+            }
+          },
+          tree: {
+            index: {
+              collection: {
+                roomId: 'foo',
+                anotherRoom: 'bar'
+              }
+            }
+          }
+        };
+
+        cluster.deleteRoomCount('roomId');
+
+        should(cluster._rooms).eql({
+          flat: {},
+          tree: {
+            index: {
+              collection: {
+                anotherRoom: 'bar'
+              }
+            }
+          }
+        });
+      });
+
+      it('should clean up empty room subtrees', () => {
+        cluster._rooms = {
+          flat: {
+            roomId: {
+              index: 'index',
+              collection: 'collection'
+            }
+          },
+          tree: {
+            index: {
+              collection: {
+                roomId: 'foo'
+              }
+            }
+          }
+        };
+
+        cluster.deleteRoomCount('roomId');
+
+        should(cluster._rooms).eql({
+          flat: {},
+          tree: {}
+        });
+      });
+    });
+
+    describe('#setRoomCount', () => {
+      it('should update both the flat list and the index/collection tree', () => {
+        cluster.setRoomCount('index', 'collection', 'roomId', 42);
+
+        should(cluster._rooms).eql({
+          flat: {
+            roomId: {
+              index: 'index',
+              collection: 'collection',
+              count: 42
+            }
+          },
+          tree: {
+            index: {
+              collection: {
+                roomId: 42
+              }
+            }
+          }
+        });
+      });
+    });
+
+    describe('#_onShutDown', () => {
+      it('should do nothing if already shutting down', () => {
+        cluster._shutdown = true;
+        cluster.cleanNode = sinon.stub();
+
+        cluster._onShutDown('event');
+        should(cluster.cleanNode)
+          .not.be.called();
+      });
+
+      it('should clean the current node', () => {
+        cluster.cleanNode = sinon.stub();
+
+        cluster._onShutDown('event');
+
+        should(cluster._shutdown)
+          .be.true();
+        should(cluster.cleanNode)
+          .be.calledWith(cluster.node);
+      });
+    });
+  });
+
+  describe('#overrides', () => {
+    beforeEach(() => {
+      cluster.init({}, context);
+      cluster.node.ready = true;
+    });
+
+    describe('#_realtimeCountOverride', () => {
+      it('should reject if no body is given', () => {
+        const request = new Request({});
+
+        return should(cluster._realtimeCountOverride(request))
+          .be.rejectedWith('The request must specify a body.');
+      });
+
+      it('should reject if no roomId is given', () => {
+        const request = new Request({
+          body: {}
+        });
+
+        return should(cluster._realtimeCountOverride(request))
+          .be.rejectedWith('The request must specify a body attribute "roomId".');
+      });
+
+      it('should return the room count if available', () => {
+        cluster._rooms = {
+          flat: {
+            roomId: {
+              index: 'index',
+              collection: 'collection',
+              count: 42
+            }
+          }
+        };
+
+        const request = new Request({
+          body: {roomId: 'roomId'}
+        });
+
+        return cluster._realtimeCountOverride(request)
+          .then(response => {
+            should(response.count).eql(42);
+          });
+      });
+
+      it('should throw if no matching room is found', () => {
+        const request = new Request({
+          body: {roomId: 'roomId'}
+        });
+
+        return should(cluster._realtimeCountOverride(request, 1))
+          .be.rejectedWith(NotFoundError, {message: 'The room Id "roomId" does not exist'});
+      });
+    });
+
+    describe('#_realtimeListOverride', () => {
+      beforeEach(() => {
+        cluster._rooms = {
+          flat: {
+            foo: {
+              index: 'i1',
+              collection: 'c1',
+              count: 42
+            },
+            bar: {
+              index: 'i2',
+              collection: 'c2',
+              count: 3
+            }
+          },
+          i1: {
+            c1: {
+              foo: 42
+            }
+          },
+          i2: {
+            c2: {
+              bar: 3
+            }
+          }
+        };
+      });
+
+      it('should return an empty object if the user has no permissions', () => {
+        const request = new Request({});
+        request.context.user = {
+          isActionAllowed: sinon.stub().resolves(false)
+        };
+
+        return cluster._realtimeListOverride(request)
+          .then(response => {
+            should(response).eql({});
+          });
+      });
+
+      it('should return the list', () => {
+        const request = new Request({
+          sorted: true
+        });
+        request.context.user = {
+          isActionAllowed: sinon.stub().resolves(true)
+        };
+
+        return cluster._realtimeListOverride(request)
+          .then(response => {
+            should(response)
+              .eql({
+                i1: {
+                  c1: {
+                    foo: 42
+                  }
+                },
+                i2: {
+                  c2: {
+                    bar: 3
+                  }
+                }
+              });
+          });
+
       });
     });
   });
