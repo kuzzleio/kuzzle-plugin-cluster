@@ -4,12 +4,8 @@ set -e
 
 docker pull kuzzleio/kuzzle
 
-# git clone kuzzle
-cd /tmp/
-git clone --recursive -b 1-dev https://github.com/kuzzleio/kuzzle.git
-
 cd "$TRAVIS_BUILD_DIR"
-echo "KUZ_PATH=/tmp/kuzzle" > docker-compose/my.env
+touch docker-compose/my.env
 
 ./dev-npm-install.sh
 
