@@ -1,6 +1,6 @@
 {
   "name": "cluster",
-  "version": "3.2.8",
+  "version": "3.2.10",
   "description": "Add cluster capabilities to Kuzzle",
   "main": "./lib/index.js",
   "scripts": {
@@ -31,6 +31,7 @@
     "ip": "^1.1.5",
     "kuzzle-common-objects": "^3.0.14",
     "lodash": "^4.17.11",
+    "request": "^2.88.0",
     "uuid": "^3.3.2",
     "zmq": "^2.15.3"
   },
