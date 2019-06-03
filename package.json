@@ -4,8 +4,9 @@
   "description": "Add cluster capabilities to Kuzzle",
   "main": "./lib/index.js",
   "scripts": {
-    "test": "npm run --silent lint && npm run --silent unit-test",
+    "test": "npm run --silent lint && npm run unit-test && npm run functional-test",
     "unit-test": "nyc -r lcov -r text-summary mocha",
+    "functional-test": "bash ./test/travis-bin/functional-tests.sh",
     "lint": "eslint --max-warnings=0 ./lib ./test",
     "codecov": "codecov"
   },
@@ -25,24 +26,24 @@
   },
   "homepage": "https://github.com/kuzzleio/kuzzle-plugin-cluster#readme",
   "dependencies": {
-    "bluebird": "^3.5.3",
+    "bluebird": "^3.5.5",
     "debug": "^4.1.1",
-    "ioredis": "^4.9.0",
+    "ioredis": "^4.9.5",
     "ip": "^1.1.5",
     "kuzzle-common-objects": "^3.0.14",
     "lodash": "^4.17.11",
     "request": "^2.88.0",
     "uuid": "^3.3.2",
-    "zmq": "^2.15.3"
+    "zeromq": "^5.1.0"
   },
   "devDependencies": {
-    "codecov": "^3.2.0",
+    "codecov": "^3.5.0",
     "eslint": "5.16.0",
-    "mocha": "^6.0.2",
+    "mocha": "^6.1.4",
     "mock-require": "^3.0.3",
-    "nyc": "^13.3.0",
+    "nyc": "^14.1.1",
     "should": "^13.2.3",
     "should-sinon": "0.0.6",
-    "sinon": "^7.3.1"
+    "sinon": "^7.3.2"
   }
 }

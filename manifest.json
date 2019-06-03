@@ -1,5 +1,5 @@
 {
   "name": "cluster",
   "privileged": true,
-  "kuzzleVersion": ">=1.5.4 <2.0.0"
+  "kuzzleVersion": ">=1.8.0 <2.0.0"
 }

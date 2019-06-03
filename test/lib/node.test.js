@@ -27,10 +27,12 @@ const
   should = require('should'),
   sinon = require('sinon'),
   {
-    InternalError: KuzzleInternalError
-  } = require('kuzzle-common-objects').errors,
-  Request = require('kuzzle-common-objects').Request,
-  zmqMock = require('../mocks/zmq.mock');
+    Request,
+    errors: {
+      InternalError: KuzzleInternalError
+    }
+  } = require('kuzzle-common-objects'),
+  zeromqMock = require('../mocks/zeromq.mock');
 
 describe('node', () => {
   let
@@ -56,7 +58,7 @@ describe('node', () => {
       cleanNode: sinon.stub().resolves(),
     };
 
-    mockRequire('zmq', zmqMock);
+    mockRequire('zeromq', zeromqMock);
     const Node = mockRequire.reRequire('../../lib/node');
     node = new Node(cluster);
   });
@@ -66,7 +68,7 @@ describe('node', () => {
   });
 
   describe('#constructor', () => {
-    it('should attach handlers to zmq sockets', () => {
+    it('should attach handlers to zeromq sockets', () => {
       {
         node._onRouterMessage = sinon.spy();
         const routerHandler = node.sockets.router.on.firstCall.args[1];
@@ -507,7 +509,7 @@ describe('node', () => {
         router: 'router'
       });
 
-      const socket = zmqMock.socket.lastCall.returnValue;
+      const socket = zeromqMock.socket.lastCall.returnValue;
       const onMsg = socket.on.firstCall.args[1];
 
       should(socket.send)
@@ -525,7 +527,7 @@ describe('node', () => {
     it('should ask remote node to subscribe to it', () => {
       node._remoteSub('endpoint');
 
-      const socket = zmqMock.socket.lastCall.returnValue;
+      const socket = zeromqMock.socket.lastCall.returnValue;
       const onMsg = socket.on.firstCall.args[1];
 
       should(socket.send)

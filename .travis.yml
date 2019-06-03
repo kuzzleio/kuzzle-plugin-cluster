@@ -21,7 +21,8 @@ jobs:
       if: type = pull_request OR type = cron OR type = push AND branch =~ ^master|.*-dev
       script:
         - npm install --unsafe-perm
-        - npm test
+        - npm run lint
+        - npm run unit-test
         - npm run codecov
         - bash test/travis-bin/sonar.sh
 
@@ -40,7 +41,7 @@ jobs:
         - sudo sysctl -w vm.max_map_count=262144
         - sudo sysctl -w fs.inotify.max_user_watches=524288
       script:
-        - bash test/travis-bin/functional-tests.sh
+        - npm run functional-test
 
     # -------------------------------------------------------------------------
     # Functional tests - Redis 4
@@ -57,7 +58,7 @@ jobs:
         - sudo sysctl -w vm.max_map_count=262144
         - sudo sysctl -w fs.inotify.max_user_watches=524288
       script:
-        - bash test/travis-bin/functional-tests.sh
+        - npm run functional-test
 
     # -------------------------------------------------------------------------
     # Functional tests - Redis 5
@@ -74,7 +75,7 @@ jobs:
         - sudo sysctl -w vm.max_map_count=262144
         - sudo sysctl -w fs.inotify.max_user_watches=524288
       script:
-        - bash test/travis-bin/functional-tests.sh
+        - npm run functional-test
 
 notifications:
   email: false

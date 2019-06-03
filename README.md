@@ -6,7 +6,7 @@ This plugin adds a cluster mode to Kuzzle.
 
 ## Compatibility
 
-Kuzzle: >=1.4.0
+Kuzzle: >=1.8.0
 
 ## Try it
 

@@ -16,5 +16,5 @@ timeout 600 bash -c 'until curl -f -s -o /dev/null http://localhost:7512/_plugin
 
 docker-compose -p cluster \
   -f docker-compose/docker-compose.yml \
-  exec kuzzle ./node_modules/.bin/cucumber-js -p websocketNoRedis
+  exec kuzzle ./node_modules/.bin/cucumber-js -b --format progress-bar -p websocketNoRedis
 
