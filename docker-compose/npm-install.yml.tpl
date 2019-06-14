@@ -29,4 +29,7 @@ services:
           cd /var/app
         done
       '
+    environment:
+      NODE_ENV: development
+
 

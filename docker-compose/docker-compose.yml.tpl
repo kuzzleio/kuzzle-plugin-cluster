@@ -27,7 +27,10 @@ services:
       DEBUG_COLORS: ${DOLLAR}{DEBUG_COLORS:-on}
 
   redis:
-    build: ./redis
+    build:
+      context: ./redis
+      args:
+        - REDIS_VERSION=${DOLLAR}{REDIS_VERSION:-4.0}
     command: redis-server /usr/local/etc/redis/redis.conf
 
   redis_init_cluster:
@@ -36,7 +39,7 @@ services:
       - redis
 
   elasticsearch:
-    image: kuzzleio/elasticsearch:5.4.1
+    image: kuzzleio/elasticsearch:5.6.10
     ulimits:
       nofile: 65536
     environment:

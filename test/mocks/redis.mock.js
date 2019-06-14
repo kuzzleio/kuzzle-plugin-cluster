@@ -43,6 +43,7 @@ class RedisMock {
     ]]);
     this.clusterSubOn = sandbox.stub().resolves([1, 1, {}]);
     this.clusterSubOff = sandbox.stub().resolves();
+    this.clusterCleanNode = sandbox.stub().resolves([]);
     this.defineCommand = sandbox.stub();
   }
 
