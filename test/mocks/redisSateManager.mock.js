@@ -19,39 +19,20 @@
  * limitations under the License.
  */
 
+const sinon = require('sinon');
 
-const
-  sinon = require('sinon'),
-  StateManagerMock = require('../mocks/stateManager.mock');
+class RedisStateManagerMock {
+  constructor (node) {
+    this.node = node;
 
-class NodeMock {
-  constructor (context) {
-    this.context = context;
-
-    this.pendingRooms = {
-      create: {},
-      delete: {}
+    this.locks = {
+      create: new Set(),
+      delete: new Set()
     };
 
-    this.state = new StateManagerMock(this);
-
-    this._syncState = sinon.spy();
-    this.broadcast = sinon.spy();
-    this.init = sinon.stub().resolves();
-    this.sync = sinon.stub().resolves();
+    this.getVersion = sinon.stub().resolves();
   }
 
-  get config () {
-    return this.context.config;
-  }
-
-  get kuzzle () {
-    return this.context.kuzzle;
-  }
-
-  get redis () {
-    return this.context.redis;
-  }
 }
 
-module.exports = NodeMock;
+module.exports = RedisStateManagerMock;

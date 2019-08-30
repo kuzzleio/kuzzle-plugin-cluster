@@ -19,8 +19,4 @@ RUN  set -x \
   && npm install --unsafe-perm \
   && cp docker-compose/config/kuzzlerc.prod /etc/kuzzlerc \
   && cd /var/app \
-  \
-  && apt-get remove --purge --auto-remove -y \
-    build-essential \
-  \
   && echo done

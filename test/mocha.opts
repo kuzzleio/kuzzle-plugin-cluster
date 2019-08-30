@@ -1,6 +1,6 @@
 -r should-sinon
 -b
---reporter spec
+--reporter dot
 --recursive
 --slow 2000
 --timeout 10000

@@ -1,12 +1,9 @@
-#!/bin/bash
+#!/bin/sh
 
 args=""
-for container in "$@"; do
-  container_ip=$(getent hosts $container | awk '{ print $1 }')
-
-  echo "$container $container_ip"
-  args="$args ${container_ip}:6379"
+for server in $(host redis | grep address | awk '{ print $4 }'); do
+  args="${args} ${server}:6379"
 done
 
 sleep 5
-echo "yes" | ruby /redis-trib.rb create --replicas 0 $args
+echo "yes" | redis-cli --cluster create $args --cluster-replicas 0

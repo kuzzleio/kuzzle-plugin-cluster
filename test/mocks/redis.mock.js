@@ -21,7 +21,8 @@
 
 const
   Bluebird = require('bluebird'),
-  getBuiltinCommands = (require('ioredis')({lazyConnect: true})).getBuiltinCommands,
+  IORedis = require('ioredis'),
+  getBuiltinCommands = (new IORedis({lazyConnect: true})).getBuiltinCommands,
   redisCommands = getBuiltinCommands(),
   sinon = require('sinon');
 
@@ -42,6 +43,7 @@ class RedisMock {
     ]]);
     this.clusterSubOn = sandbox.stub().resolves([1, 1, {}]);
     this.clusterSubOff = sandbox.stub().resolves();
+    this.clusterCleanNode = sandbox.stub().resolves([]);
     this.defineCommand = sandbox.stub();
   }
 

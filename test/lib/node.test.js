@@ -26,8 +26,13 @@ const
   RedisMock = require('../mocks/redis.mock'),
   should = require('should'),
   sinon = require('sinon'),
-  Request = require('kuzzle-common-objects').Request,
-  zmqMock = require('../mocks/zmq.mock');
+  {
+    Request,
+    errors: {
+      InternalError: KuzzleInternalError
+    }
+  } = require('kuzzle-common-objects'),
+  zeromqMock = require('../mocks/zeromq.mock');
 
 describe('node', () => {
   let
@@ -53,7 +58,7 @@ describe('node', () => {
       cleanNode: sinon.stub().resolves(),
     };
 
-    mockRequire('zmq', zmqMock);
+    mockRequire('zeromq', zeromqMock);
     const Node = mockRequire.reRequire('../../lib/node');
     node = new Node(cluster);
   });
@@ -63,7 +68,7 @@ describe('node', () => {
   });
 
   describe('#constructor', () => {
-    it('should attach handlers to zmq sockets', () => {
+    it('should attach handlers to zeromq sockets', () => {
       {
         node._onRouterMessage = sinon.spy();
         const routerHandler = node.sockets.router.on.firstCall.args[1];
@@ -196,18 +201,19 @@ describe('node', () => {
     it('should keep retrying if the corum is not reached', () => {
       cluster.config.retryJoin = 3;
       cluster.config.minimumNodes = 9;
+      cluster.config.timers.joinAttemptInterval = 0;
 
       return node.join()
         .then(() => {
           should(node.discover)
-            .have.callCount(3);
+            .be.calledThrice();
         });
     });
   });
 
   describe('#_addNode', () => {
     beforeEach(() => {
-      sinon.stub(node, '_heartbeat');
+      sinon.stub(node, '_onHeartbeat');
     });
 
     it('should do nothing if the node is already registered', () => {
@@ -223,7 +229,7 @@ describe('node', () => {
 
       should(node.sockets.sub.connect)
         .be.calledWith('foo');
-      should(node._heartbeat)
+      should(node._onHeartbeat)
         .be.calledWith({pub: 'foo'});
       should(node.pool.foo)
         .eql({pub: 'foo'});
@@ -231,8 +237,79 @@ describe('node', () => {
   });
 
   describe('#_heartbeat', () => {
+    it('should broadcast the heartbeat', () => {
+      node.broadcast = sinon.stub();
 
+      node.redis.smembers.resolves([
+        JSON.stringify({
+          router: node.config.bindings.router.href
+        })
+      ]);
 
+      return node._heartbeat()
+        .then(() => {
+          should(node.broadcast)
+            .be.calledWith('cluster:heartbeat', node);
+        });
+    });
+
+    it('should check if the node is known from the cluster and if not, register itself', () => {
+      node.join = sinon.stub().resolves();
+      node.broadcast = sinon.stub();
+
+      node.redis.smembers.resolves([]);
+
+      return node._heartbeat()
+        .then(() => {
+          should(node.join)
+            .be.calledOnce();
+        });
+    });
+
+  });
+
+  describe('#_onHeartbeat', () => {
+    it('should add an unknown node', () => {
+      node._remoteJoin = sinon.stub();
+
+      node._onHeartbeat({
+        pub: 'unknown'
+      });
+
+      should(node._remoteJoin)
+        .be.calledOnce();
+    });
+
+    it('should remove a remote node after a timeout and attempt to rejoin it', done => {
+      node._removeNode = sinon.stub();
+      node._remoteJoin = sinon.stub();
+
+      node.pool = {
+        remote: {
+          pub: 'remote'
+        }
+      };
+
+      const setTimeoutStub = sinon.stub(global, 'setTimeout').callsFake(fn => {
+        fn();
+
+        should(node._removeNode)
+          .be.calledOnce()
+          .be.calledWith('remote');
+
+        should(node._remoteJoin)
+          .be.calledWith({
+            pub: 'remote'
+          });
+
+        setTimeoutStub.restore();
+
+        done();
+      });
+
+      node._onHeartbeat({pub: 'remote'});
+
+    });
   });
 
   describe('#_onRouterMessage', () => {
@@ -247,13 +324,31 @@ describe('node', () => {
       should(node.sockets.router.send)
         .be.calledWith(['envelope', JSON.stringify(['remoteSub', true])]);
     });
+
+    it('remoteJoin', () => {
+      node.join = sinon.stub();
+
+      node._onRouterMessage('envelope', JSON.stringify(['remoteJoin', true]));
+
+      should(node.sockets.router.send)
+        .be.calledWith([
+          'envelope',
+          JSON.stringify([
+            'remoteJoin',
+            true
+          ])
+        ]);
+
+      should(node.ready).be.false();
+      should(node.join).be.calledOnce();
+    });
   });
 
   describe('#_onSubMessage', () => {
     it('cluster:heartbeat', () => {
-      node._heartbeat = sinon.spy();
+      node._onHeartbeat = sinon.spy();
       node._onSubMessage(JSON.stringify(['cluster:heartbeat', 'data']));
-      should(node._heartbeat)
+      should(node._onHeartbeat)
         .be.calledWith('data');
     });
 
@@ -374,13 +469,65 @@ describe('node', () => {
       should(node.sync).be.calledWith('data');
     });
 
+    it('cluster:admin:dump', () => {
+      node._onSubMessage(JSON.stringify(['cluster:admin:dump', {suffix: 'suffix'}]));
+
+      should(node.kuzzle.janitor.dump)
+        .be.calledWith('suffix');
+    });
+
+    it('cluster:admin:shutdown', () => {
+      const killStub = sinon.stub(process, 'kill');
+
+      node._onSubMessage(JSON.stringify(['cluster:admin:shutdown', false]));
+      should(killStub)
+        .be.calledWith(process.pid, 'SIGTERM');
+
+      killStub.restore();
+    });
+
+    it('cluster:admin:resetSecurity', () => {
+      node.kuzzle.repositories.profile.profiles = {
+        foo: 'bar'
+      };
+      node.kuzzle.repositories.role.roles = {
+        bar: 'baz'
+      };
+
+      node._onSubMessage(JSON.stringify(['cluster:admin:resetSecurity', false]));
+      should(node.kuzzle.repositories.profile.profiles)
+        .be.empty();
+      should(node.kuzzle.repositories.role.roles)
+        .be.empty();
+    });
+  });
+
+  describe('#_remoteJoin', () => {
+    it('should ask remote node to rejoin the cluster', () => {
+      node.discover = sinon.stub();
+      node._remoteJoin({
+        router: 'router'
+      });
+
+      const socket = zeromqMock.socket.lastCall.returnValue;
+      const onMsg = socket.on.firstCall.args[1];
+
+      should(socket.send)
+        .be.calledWith(JSON.stringify(['remoteJoin', node]));
+
+      onMsg(JSON.stringify(['remoteJoin', true]));
+      should(socket.close)
+        .be.calledOnce();
+      should(node.discover)
+        .be.calledOnce();
+    });
   });
 
   describe('#_remoteSub', () => {
     it('should ask remote node to subscribe to it', () => {
       node._remoteSub('endpoint');
 
-      const socket = zmqMock.socket.lastCall.returnValue;
+      const socket = zeromqMock.socket.lastCall.returnValue;
       const onMsg = socket.on.firstCall.args[1];
 
       should(socket.send)
@@ -389,6 +536,19 @@ describe('node', () => {
       onMsg(JSON.stringify(['remoteSub', true]));
       should(socket.close)
         .be.calledOnce();
+    });
+
+    it('should remove the node in case of timeout', () => {
+      node.config.timers.discoverTimeout = 0;
+      node._removeNode = sinon.stub();
+
+      return node._remoteSub({
+        pub: 'pub'
+      })
+        .then(() => {
+          should(node._removeNode)
+            .be.calledWith('pub');
+        });
     });
   });
 
@@ -446,7 +606,7 @@ describe('node', () => {
   // async handler (promise or callback)
   // Welcome to setTimeout land!
   describe('#sync', () => {
-    it('autorefresh', done => {
+    it('autorefresh', () => {
       const
         indexes = ['foo', 'bar', 'baz', 'qux'],
         hgetallPayload = {};
@@ -457,10 +617,8 @@ describe('node', () => {
 
       node.redis.hgetall.withArgs('cluster:autorefresh').resolves(hgetallPayload);
 
-      node.sync({event: 'autorefresh'});
-
-      setTimeout(() => {
-        try {
+      return node.sync({event: 'autorefresh'})
+        .then(() => {
           should(node.kuzzle.services.list.storageEngine.setAutoRefresh.callCount).eql(4);
 
           for (let i = 0; i < 4; i++) {
@@ -477,127 +635,141 @@ describe('node', () => {
               }
             });
           }
-
-          done();
-        } catch (e) {
-          done(e);
-        }
-      }, 100);
+        });
     });
 
     it('indexCache:add', () => {
-      node.sync({
+      return node.sync({
         event: 'indexCache:add',
         index: 'index',
         collection: 'collection'
-      });
+      })
+        .then(() => {
+          should(node.kuzzle.indexCache.add).be.calledWith('index', 'collection', false);
+        });
 
-      should(node.kuzzle.indexCache.add).be.calledWith('index', 'collection', false);
     });
 
     it('indexCache:remove', () => {
-      node.sync({
+      return node.sync({
         event: 'indexCache:remove',
         index: 'index',
         collection: 'collection'
-      });
-
-      should(node.kuzzle.indexCache.remove)
-        .be.calledWith('index', 'collection', false);
+      })
+        .then(() => {
+          should(node.kuzzle.indexCache.remove)
+            .be.calledWith('index', 'collection', false);
+        });
     });
 
     it('indexCache:reset', () => {
-      node.sync({event: 'indexCache:reset'});
+      return node.sync({event: 'indexCache:reset'})
+        .then(() => {
+          should(node.kuzzle.indexCache.reset)
+            .be.calledOnce();
+        });
 
-      should(node.kuzzle.indexCache.reset)
-        .be.calledOnce();
     });
 
     it('profile', () => {
       node.kuzzle.repositories.profile.profiles.foo = 'bar';
-      node.sync({
+
+      return node.sync({
         event: 'profile',
         id: 'foo'
-      });
-      should(node.kuzzle.repositories.profile.profiles)
-        .be.empty();
+      })
+        .then(() => {
+          should(node.kuzzle.repositories.profile.profiles)
+            .be.empty();
+        });
     });
 
     it('role', () => {
       node.kuzzle.repositories.role.roles.foo = 'bar';
-      node.sync({
+
+      return node.sync({
         event: 'role',
         id: 'foo'
+      })
+        .then(() => {
+          should(node.kuzzle.repositories.role.roles)
+            .be.empty();
+        });
+    });
+
+    it('strategies', () => {
+      const strategyEvent = {
+        event: 'strategies'
+      };
+
+      node.kuzzle.pluginsManager.listStrategies.returns(['toDelete', 'anotherOne', 'strategyName']);
+      node.kuzzle.pluginsManager.strategies = {
+        toDelete: {owner: 'foo'},
+        anotherOne: {owner: 'bar'}
+      };
+      node.redis.hgetall.withArgs('cluster:strategies').resolves({
+        strategyName: JSON.stringify({
+          plugin: 'plugin',
+          strategy: 'strategy'
+        })
       });
-      should(node.kuzzle.repositories.role.roles)
-        .be.empty();
-    });
 
-    it('strategy:added', () => {
-      const strategyEvent = {
-        event: 'strategy:added',
-        pluginName: 'plugin',
-        name: 'bar',
-        strategy: 'strategy'
-      };
+      return node.sync(strategyEvent)
+        .then(() => {
+          should(node.redis.hgetall)
+            .be.calledWith('cluster:strategies');
 
-      node.sync(strategyEvent);
-      should(node.kuzzle.pluginsManager.registerStrategy)
-        .be.calledWith('plugin', 'bar', 'strategy');
+          should(node.kuzzle.pluginsManager.registerStrategy)
+            .be.calledWith('plugin', 'strategyName', 'strategy');
 
-      node.kuzzle.pluginsManager.registerStrategy.throws(new Error('foobar'));
-      should(() => node.sync(strategyEvent)).not.throw();
-      should(cluster.log)
-        .calledOnce()
-        .calledWith('error', 'Plugin plugin - tried to add the strategy "bar": foobar');
-    });
+          should(node.kuzzle.pluginsManager.unregisterStrategy)
+            .be.calledTwice()
+            .be.calledWith('foo', 'toDelete')
+            .be.calledWith('bar', 'anotherOne');
 
-    it('strategy:removed', () => {
-      const strategyEvent = {
-        event: 'strategy:removed',
-        pluginName: 'pluginName',
-        name: 'name'
-      };
-
-      node.sync(strategyEvent);
-      should(node.kuzzle.pluginsManager.unregisterStrategy)
-        .calledOnce()
-        .calledWith('pluginName', 'name');
-
-      node.kuzzle.pluginsManager.unregisterStrategy.throws(new Error('foobar'));
-      should(() => node.sync(strategyEvent)).not.throw();
-      should(cluster.log)
-        .calledOnce()
-        .calledWith('error', 'Plugin pluginName - tried to remove the strategy "name": foobar');
+        });
     });
 
     it('state', () => {
-      node.state.sync = sinon.spy();
+      node.state.sync = sinon.stub().resolves();
       const data = {event: 'state'};
 
-      node.sync(data);
-      should(node.state.sync).be.calledWith(data);
+      return node.sync(data)
+        .then(() => {
+          should(node.state.sync).be.calledWith(data);
+        });
     });
 
     it('state:all', () => {
-      node.state.syncAll = sinon.spy();
+      node.state.syncAll = sinon.stub().resolves();
       const data = {event: 'state:all'};
 
-      node.sync(data);
-      should(node.state.syncAll).be.calledWith(data);
+      return node.sync(data)
+        .then(() => {
+          should(node.state.syncAll).be.calledWith(data);
+        });
     });
 
     it('state:reset', () => {
-      node.context.reset = sinon.spy();
+      node.context.reset = sinon.stub().resolves();
       const data = {event: 'state:reset'};
 
-      node.sync(data);
-      should(node.context.reset).be.calledOnce();
+      return node.sync(data)
+        .then(() => {
+          should(node.context.reset).be.calledOnce();
+        });
     });
 
     it('validators', () => {
-      node.sync({event: 'validators'});
-      should(node.kuzzle.validation.curateSpecification).be.calledOnce();
+      return node.sync({event: 'validators'})
+        .then(() => {
+          should(node.kuzzle.validation.curateSpecification).be.calledOnce();
+        });
+    });
+
+    it('default', () => {
+      return should(node.sync({event: 'unknown'}))
+        .be.rejectedWith(KuzzleInternalError);
     });
   });
 });

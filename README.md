@@ -4,9 +4,26 @@
 
 This plugin adds a cluster mode to Kuzzle.
 
+## Kuzzle
+
+Kuzzle is a ready-to-use, **on-premises and scalable backend** that enables you to manage your persistent data and be notified in real-time on whatever happens to it. 
+It also provides you with a flexible and powerful user-management system.
+
+* :watch: __[Kuzzle in 5 minutes](https://kuzzle.io/company/about-us/kuzzle-in-5-minutes/)__
+* :octocat: __[Github](https://github.com/kuzzleio/kuzzle)__
+* :earth_africa: __[Website](https://kuzzle.io)__
+* :books: __[Documentation](https://docs.kuzzle.io)__
+* :email: __[Gitter](https://gitter.im/kuzzleio/kuzzle)__
+
+## Get trained by the creators of Kuzzle :zap:
+
+Train yourself and your teams to use Kuzzle to maximize its potential and accelerate the development of your projects.  
+Our teams will be able to meet your needs in terms of expertise and multi-technology support for IoT, mobile/web, backend/frontend, devops.  
+:point_right: [Get a quote](https://hubs.ly/H0jkfJ_0)
+
 ## Compatibility
 
-Kuzzle: >=1.4.0
+Kuzzle: >=1.8.0
 
 ## Try it
 
@@ -16,51 +33,54 @@ To run a kuzzle stack, you can use the provided compose file:
 docker-compose up --scale kuzzle=3
 ```
 
-NB: This compose stack is for tests only and should not be used as-is on production.  
-Notably, only kuzzle runs in cluster mode, elasticsearch and redis are using one node only.
+**NB: This compose stack is for tests and development only and should not be used as-is on production. ** 
 
 ## Run a development stack
 
-The development stack mounts both kuzzle and the cluster sources as docker volumes.
-
 ```bash
 cd <dir>
-git clone -b <commit> git@github.com:kuzzleio/kuzzle.git
-git clone git@github.com:kuzzleio/kuzzle-plugin-cluster.git
+git clone https://github.com/kuzzleio/kuzzle-plugin-cluster.git
 
 cd kuzzle-plugin-cluster
 cp docker-compose/my.env.sample docker-compose/my.env
-vim docker-compose/my.env
 
 ./dev-npm-install.sh
 ./dev.sh
 ```
 
 You should now have a full Kuzzle clustered stack running 3 Kuzzle front nodes (and 3 servers).
-Each update on either Kuzzle or the cluster source should automatically restart kuzzle.
+Each update on the cluster source should automatically restart kuzzle.
 
 **Note:** on some Linux environments, you may get `ENOSPC` errors from the filesystem watcher. If so, you need to raise the limits on the number of files that can be watched:
 
 `sudo sysctl -w fs.inotify.max_user_watches=524288`
 
-### nginx vs haproxy
-
-The development stack exposes 2 reverse proxies:
-
-* nginx on port 7512
-* haproxy on port 7513
-
-haproxy configuration includes some more advanced health checks, which are only partly available in the commercial version of nginx.
-In counterpart, nginx currently offers a big advantage over haproxy in being able to hot reload its configuration without killing current connections.
-
-In other words, when adding a node to the cluster, haproxy (at least up to current version 1.7) will disconnect all clients, while nginx won't.
-
 ### Goodies
 
-* [http://localhost:7575/hastats] (kuzzle/kuzzle) => haproxy stats page
 * [http://localhost:7512/_plugin/cluster/status] => cluster status
 * `curl -XPOST http://localhost:7512/_plugin/cluster/reset` => resets redis state and force a new sync (blanks cluster state)
-* [http://localhost:7512/cluster_kuzzle_1/] prefixing the url by the container name lets you access it directly
+* `bash docker-compose/scripts/devtools.sh` dumps to the standard output the urls to copy/paste in Google Chrome to live-debug the nodes
+
+## Run the cluster in production
+
+### Install
+
+The cluster needs to be installed as a plugin. Please refer to [Kuzzle documentation](https://docs.kuzzle.io/guide/1/essentials/plugins/#installing-a-plugin) on how to proceed.
+
+### Network ports
+
+By default, Kuzzle nodes communicate with each other using two channels on ports `7510` and `7511`.  
+**NB: These ports are used by the cluster only and do not need to be publicly exposed.**
+
+You can configure the ports used in the `bindings` section of the plugin configuration (cf [below](#configuration)).
+
+Each Kuzzle node also needs to be able to access Redis and Elasticsearch services.
+
+### Healthcheck
+
+The cluster exposes a healthcheck route on http://kuzzle:7512/_plugin/cluster/health
+
+The route returns a 200 status code only if the `minimumNodes` set in the configuration is reached (cf [configuration](#configuration) below).
 
 ## Configuration
 
@@ -70,7 +90,7 @@ This plugin needs privileged context to work. This context is granted by Kuzzle 
 
 ```javascript
 plugins: {
-    'cluster': {
+    cluster: {
         privileged: true
     }
 }
@@ -91,6 +111,27 @@ Make sure you increase your pipe timeouts accordingly.
     }
 ```
 
+### Bindings
+
+The bindings on which each node can be reached by the others can be configured in the `bindings` section of the cluster plugin configuration:
+
+```json
+"plugins": {
+  "cluster": {
+    "bindings": {
+      "pub": "tcp://[_site_:ipv4]:7511",
+      "router": "tcp://[_site_:ipv4]:7510"
+    }
+  }
+}
+```
+
+The syntax is `tcp://[<interface>:<family>]:<port>`, where
+
+- `interface` is either a network interface (i.e. `eth0`), an ip address (i.e. `0.0.0.0`) or `_site_`. If set to `_site_`, the first public ip will be used.
+- `family` is either set to `ipv4` (default) or `ipv6`
+- `port` is set to the port to listen to
+
 ### Redis cluster
 
 Redis cluster comes with some limitations:
@@ -101,42 +142,86 @@ Redis cluster comes with some limitations:
 The latter implies the configuration cannot be set via environment variables.
 To comply with the former, make sure to set only one database index (0).
 
-i.e.:
+### Full configuration sample
+
+Here is a complete sample configuration using a 3 nodes redis cluster and a 2 elasticsearch nodes.
+
 ```json
-    "internalCache": {
-      "database": 0,
-      "nodes": [
-        {
-          "host": "cluster_redis_1",
-          "port": 6379
-        },
-        {
-          "host": "cluster_redis_2",
-          "port": 6379
-        },
-        {
-          "host": "cluster_redis_3",
-          "port": 6379
-        }
-      ]
+"plugins": {
+  "common": {
+    "pipeWarnTime": 5000,
+    "pipeTimeout": 10000
+  },
+  "cluster": {
+    "privileged": true,
+    "bindings": {
+      "pub": "tcp://[_site_:ipv4]:7511",
+      "router": "tcp://[_site_:ipv4]:7510"
     },
-    "memoryStorage": {
-      "database": 0,
-      "nodes": [
+    "minimumNodes": 1,
+    "retryJoin": 30,
+    "timers": {
+      "discoverTimeout": 3000,
+      "joinAttemptIntervall": 2000,
+      "heartbeat": 5000,
+      "waitForMissingRooms": 4500
+    }
+  }
+},
+
+"services": {
+  "internalCache": {
+    "database": 0,
+    "nodes": [
+      {
+        "host": "redis1",
+        "port": 6379
+      },
+      {
+        "host": "redis2",
+        "port": 6379
+      },
+      {
+        "host": "redis3",
+        "port": 6379
+      }
+    ]
+  },
+  "memoryStorage": {
+    "database": 0,
+    "nodes": [
+      {
+        "host": "redis1",
+        "port": 6379
+      },
+      {
+        "host": "redis2",
+        "port": 6379
+      },
+      {
+        "host": "redis3",
+        "port": 6379
+      }
+    ]
+  },
+  "db": {
+    "client": {
+      "host": false,
+      "hosts": [
         {
-          "host": "cluster_redis_1",
-          "port": 6379
+          "protocol": "http",
+          "host": "elasticsearch1",
+          "port": 9200
         },
         {
-          "host": "cluster_redis_2",
-          "port": 6379
-        },
-        {
-          "host": "cluster_redis_3",
-          "port": 6379
+          "protocol": "http",
+          "host": "elasticsearch2",
+          "port": 9200
         }
       ]
     }
-```
+  }
+}
 
+```
 

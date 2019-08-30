@@ -20,7 +20,6 @@
 --
 
 
--- helper - transforms a redis flat array into a hashmap
 local hash_tag = KEYS[1]
 
 local result = {}
