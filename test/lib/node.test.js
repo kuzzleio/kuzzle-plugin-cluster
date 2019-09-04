@@ -366,7 +366,6 @@ describe('node', () => {
           }
         },
         scope: 'scope',
-        state: 'state',
         action: 'action',
         content: 'content'
       };
@@ -377,7 +376,6 @@ describe('node', () => {
         .be.calledWithMatch(payload.rooms,
           sinon.match.instanceOf(Request),
           payload.scope,
-          payload.state,
           payload.action,
           payload.content);
 
