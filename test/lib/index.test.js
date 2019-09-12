@@ -168,44 +168,23 @@ describe('index', () => {
       });
     });
 
-    describe('#autorefreshUpdated', () => {
-      it('should persist the autorefresh state in redis and broadcast the update', () => {
-        return cluster.autoRefreshUpdated(new Request({
-          controller: 'index',
-          action: 'autorefresh',
-          index: 'index',
-          body: {
-            autoRefresh: true
-          }
-        }))
-          .then(() => {
-            should(cluster.hooks['index:afterSetAutoRefresh'])
-              .eql('autoRefreshUpdated');
-
-            should(cluster.redis.hset)
-              .be.calledWith('cluster:autorefresh', 'index', true);
-
-            should(cluster.node.broadcast)
-              .be.calledWith('cluster:sync', {
-                event: 'autorefresh'
-              });
-          });
-      });
-    });
-
     describe('#indexCacheAdded', () => {
       it('should broadcast', () => {
         should(cluster.hooks['core:indexCache:add'])
           .eql('indexCacheAdded');
 
-        cluster.indexCacheAdded({index: 'index', collection: 'collection'});
+        cluster.indexCacheAdded({
+          index: 'index',
+          collection: 'collection',
+          scope: 'public'
+        });
 
-        should(cluster.node.broadcast)
-          .be.calledWith('cluster:sync', {
-            event: 'indexCache:add',
-            index: 'index',
-            collection: 'collection'
-          });
+        should(cluster.node.broadcast).be.calledWith('cluster:sync', {
+          event: 'indexCache:add',
+          index: 'index',
+          collection: 'collection',
+          scope: 'public'
+        });
       });
     });
 
@@ -214,30 +193,19 @@ describe('index', () => {
         should(cluster.hooks['core:indexCache:remove'])
           .eql('indexCacheRemoved');
 
-        cluster.indexCacheRemoved({index: 'index', collection: 'collection'});
+        cluster.indexCacheRemoved({
+          index: 'index',
+          collection: 'collection',
+          scope: 'internal'
+        });
 
-        should(cluster.node.broadcast)
-          .be.calledWith('cluster:sync', {
-            event: 'indexCache:remove',
-            index: 'index',
-            collection: 'collection'
-          });
+        should(cluster.node.broadcast).be.calledWith('cluster:sync', {
+          event: 'indexCache:remove',
+          index: 'index',
+          collection: 'collection',
+          scope: 'internal'
+        });
       });
-    });
-
-    describe('#indexCacheReset', () => {
-      it('should broadcast the change', () => {
-        should(cluster.hooks['core:indexCache:reset'])
-          .eql('indexCacheReset');
-
-        cluster.indexCacheReset({index: 'index', collection: 'collection'});
-
-        should(cluster.node.broadcast)
-          .be.calledWith('cluster:sync', {
-            event: 'indexCache:reset'
-          });
-      });
-
     });
 
     describe('#kuzzleStarted', () => {
