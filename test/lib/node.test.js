@@ -612,7 +612,7 @@ describe('node', () => {
         scope: 'public'
       });
 
-      should(node.kuzzle.indexCache.add).be.calledWith({
+      should(node.kuzzle.storageEngine.indexCache.add).be.calledWith({
         index: 'index',
         collection: 'collection',
         scope: 'public',
@@ -628,7 +628,7 @@ describe('node', () => {
         scope: 'internal'
       });
 
-      should(node.kuzzle.indexCache.remove).be.calledWith({
+      should(node.kuzzle.storageEngine.indexCache.remove).be.calledWith({
         index: 'index',
         collection: 'collection',
         scope: 'internal',
