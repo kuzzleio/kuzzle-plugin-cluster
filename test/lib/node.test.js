@@ -366,7 +366,6 @@ describe('node', () => {
           }
         },
         scope: 'scope',
-        state: 'state',
         action: 'action',
         content: 'content'
       };
@@ -377,7 +376,6 @@ describe('node', () => {
         .be.calledWithMatch(payload.rooms,
           sinon.match.instanceOf(Request),
           payload.scope,
-          payload.state,
           payload.action,
           payload.content);
 
@@ -606,69 +604,36 @@ describe('node', () => {
   // async handler (promise or callback)
   // Welcome to setTimeout land!
   describe('#sync', () => {
-    it('autorefresh', () => {
-      const
-        indexes = ['foo', 'bar', 'baz', 'qux'],
-        hgetallPayload = {};
-
-      for (const idx of indexes) {
-        hgetallPayload[idx] = Math.random() > .5;
-      }
-
-      node.redis.hgetall.withArgs('cluster:autorefresh').resolves(hgetallPayload);
-
-      return node.sync({event: 'autorefresh'})
-        .then(() => {
-          should(node.kuzzle.services.list.storageEngine.setAutoRefresh.callCount).eql(4);
-
-          for (let i = 0; i < 4; i++) {
-            const request = node.kuzzle.services.list.storageEngine.setAutoRefresh.getCall(i).args[0];
-
-            should(request.serialize()).match({
-              data: {
-                index: indexes[i],
-                controller: 'index',
-                action: 'setAutoRefresh',
-                body: {
-                  autoRefresh: hgetallPayload[indexes[i]]
-                }
-              }
-            });
-          }
-        });
-    });
-
-    it('indexCache:add', () => {
-      return node.sync({
+    it('indexCache:add', async () => {
+      await node.sync({
         event: 'indexCache:add',
         index: 'index',
-        collection: 'collection'
-      })
-        .then(() => {
-          should(node.kuzzle.indexCache.add).be.calledWith('index', 'collection', false);
-        });
+        collection: 'collection',
+        scope: 'public'
+      });
 
+      should(node.kuzzle.storageEngine.indexCache.add).be.calledWith({
+        index: 'index',
+        collection: 'collection',
+        scope: 'public',
+        notify: false
+      });
     });
 
-    it('indexCache:remove', () => {
-      return node.sync({
+    it('indexCache:remove', async () => {
+      await node.sync({
         event: 'indexCache:remove',
         index: 'index',
-        collection: 'collection'
-      })
-        .then(() => {
-          should(node.kuzzle.indexCache.remove)
-            .be.calledWith('index', 'collection', false);
-        });
-    });
+        collection: 'collection',
+        scope: 'internal'
+      });
 
-    it('indexCache:reset', () => {
-      return node.sync({event: 'indexCache:reset'})
-        .then(() => {
-          should(node.kuzzle.indexCache.reset)
-            .be.calledOnce();
-        });
-
+      should(node.kuzzle.storageEngine.indexCache.remove).be.calledWith({
+        index: 'index',
+        collection: 'collection',
+        scope: 'internal',
+        notify: false
+      });
     });
 
     it('profile', () => {

@@ -51,10 +51,12 @@ class KuzzleMock {
       _removeRoomEverywhere: sinon.spy()
     };
 
-    this.indexCache = {
-      add: sinon.spy(),
-      remove: sinon.spy(),
-      reset: sinon.spy()
+    this.storageEngine = {
+      indexCache: {
+        add: sinon.spy(),
+        remove: sinon.spy(),
+        reset: sinon.spy()
+      }
     };
 
     this.janitor = {
