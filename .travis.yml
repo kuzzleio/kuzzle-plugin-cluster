@@ -30,7 +30,7 @@ jobs:
     # Functional tests - Redis 3.2
     # -------------------------------------------------------------------------
     - name: Functional tests - Redis 3.2
-      if: type = cron OR type = push AND branch = 3-stable
+      if: type = cron OR branch = 3-stable
       env:
         - DOCKER_COMPOSE_VERSION=1.24.0
         - REDIS_VERSION=3.2
@@ -47,7 +47,7 @@ jobs:
     # Functional tests - Redis 4
     # -------------------------------------------------------------------------
     - name: Functional tests- Redis 4
-      if: type = cron OR type = push AND branch = 3-stable
+      if: type = cron OR branch = 3-stable
       env:
         - DOCKER_COMPOSE_VERSION=1.24.0
         - REDIS_VERSION=4
@@ -64,7 +64,7 @@ jobs:
     # Functional tests - Redis 5
     # -------------------------------------------------------------------------
     - name: Functional tests - Redis 5
-      if: type = cron OR type = push AND branch = 3-stable
+      if: type = cron OR branch = 3-stable
       env:
         - DOCKER_COMPOSE_VERSION=1.24.0
         - REDIS_VERSION=5
