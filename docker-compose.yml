@@ -1,3 +1,4 @@
+---
 version: "3"
 
 services:
@@ -11,10 +12,11 @@ services:
       - ./docker-compose/nginx/kuzzle.conf:/etc/nginx/conf.d/kuzzle.conf
 
   kuzzle:
-    image: kuzzleio/cluster
+    image: kuzzleio/kuzzle:1
     volumes:
-     - ./docker-compose/config/kuzzlerc.prod:/etc/kuzzlerc
+      - ./docker-compose/config/kuzzlerc.prod:/etc/kuzzlerc
     environment:
+      KUZZLE_PLUGINS: kuzzle-plugin-cluster
       NODE_ENV: ${NODE_ENV:-production}
       DEBUG: ${DEBUG:-none}
       DEBUG_COLORS: ${DEBUG_COLORS:-on}
@@ -28,4 +30,3 @@ services:
       nofile: 65536
     environment:
       cluster.name: kuzzle
-
