@@ -1,7 +1,8 @@
+---
 dist: xenial
 sudo: required
 group: edge
-node_js: "8"
+node_js: "10"
 jdk: openjdk8
 
 services:
@@ -25,40 +26,6 @@ jobs:
         - npm run unit-test
         - npm run codecov
         - bash test/travis-bin/sonar.sh
-
-    # -------------------------------------------------------------------------
-    # Functional tests - Redis 3.2
-    # -------------------------------------------------------------------------
-    - name: Functional tests - Redis 3.2
-      if: type = cron OR type = push AND branch = master
-      env:
-        - DOCKER_COMPOSE_VERSION=1.24.0
-        - REDIS_VERSION=3.2
-      before_install:
-        - sudo rm /usr/local/bin/docker-compose
-        - sudo curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
-        - sudo chmod +x /usr/local/bin/docker-compose
-        - sudo sysctl -w vm.max_map_count=262144
-        - sudo sysctl -w fs.inotify.max_user_watches=524288
-      script:
-        - npm run functional-test
-
-    # -------------------------------------------------------------------------
-    # Functional tests - Redis 4
-    # -------------------------------------------------------------------------
-    - name: Functional tests- Redis 4
-      if: type = cron OR type = push AND branch = master
-      env:
-        - DOCKER_COMPOSE_VERSION=1.24.0
-        - REDIS_VERSION=4
-      before_install:
-        - sudo rm /usr/local/bin/docker-compose
-        - sudo curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
-        - sudo chmod +x /usr/local/bin/docker-compose
-        - sudo sysctl -w vm.max_map_count=262144
-        - sudo sysctl -w fs.inotify.max_user_watches=524288
-      script:
-        - npm run functional-test
 
     # -------------------------------------------------------------------------
     # Functional tests - Redis 5

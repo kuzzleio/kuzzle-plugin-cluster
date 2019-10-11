@@ -1,4 +1,4 @@
-FROM kuzzleio/kuzzle:1-dev
+FROM kuzzleio/kuzzle:2-dev
 
 RUN  set -x \
   \

@@ -1,10 +1,33 @@
-[![Build Status](https://travis-ci.org/kuzzleio/kuzzle-plugin-cluster.svg?branch=master)](https://travis-ci.org/kuzzleio/kuzzle-plugin-cluster) [![codecov.io](http://codecov.io/github/kuzzleio/kuzzle-plugin-cluster/coverage.svg?branch=master)](http://codecov.io/github/kuzzleio/kuzzle-plugin-cluster?branch=master)
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/7868838/66303815-2617b000-e8fc-11e9-8c3f-613574be1746.png"/>
+</p>
+<p align="center">
+  <a href="https://david-dm.org/kuzzleio/kuzzle-plugin-cluster">
+    <img src="https://david-dm.org/kuzzleio/kuzzle-plugin-cluster.svg" />
+  </a>
+  <a href="https://travis-ci.com/kuzzleio/kuzzle-plugin-cluster">
+    <img alt="undefined" src="https://travis-ci.com/kuzzleio/kuzzle-plugin-cluster.svg?branch=master">
+  </a>
+  <a href="https://codecov.io/gh/kuzzleio/kuzzle-plugin-cluster">
+    <img src="https://codecov.io/gh/kuzzleio/kuzzle-plugin-cluster/branch/master/graph/badge.svg" />
+  </a>
+  <a href="https://github.com/kuzzleio/kuzzle-plugin-cluster/blob/master/LICENSE">
+    <img alt="undefined" src="https://img.shields.io/github/license/kuzzleio/kuzzle-plugin-cluster.svg?style=flat">
+  </a>
+</p>
 
-# Cluster mode plugin
 
-This plugin adds a cluster mode to Kuzzle.
+## About
 
-## Kuzzle
+### Kuzzle Cluster Plugin
+
+This plugin adds a masterless cluster mode to Kuzzle.
+
+<p align="center">
+  :books: <b><a href="https://docs.kuzzle.io/core/1/guides/kuzzle-depth/scalability">Documentation</a></b>
+</p>
+
+### Kuzzle
 
 Kuzzle is a ready-to-use, **on-premises and scalable backend** that enables you to manage your persistent data and be notified in real-time on whatever happens to it. 
 It also provides you with a flexible and powerful user-management system.
@@ -15,15 +38,19 @@ It also provides you with a flexible and powerful user-management system.
 * :books: __[Documentation](https://docs.kuzzle.io)__
 * :email: __[Gitter](https://gitter.im/kuzzleio/kuzzle)__
 
-## Get trained by the creators of Kuzzle :zap:
+### Get trained by the creators of Kuzzle :zap:
 
 Train yourself and your teams to use Kuzzle to maximize its potential and accelerate the development of your projects.  
 Our teams will be able to meet your needs in terms of expertise and multi-technology support for IoT, mobile/web, backend/frontend, devops.  
 :point_right: [Get a quote](https://hubs.ly/H0jkfJ_0)
 
-## Compatibility
+### Compatibility matrice
 
-Kuzzle: >=1.8.0
+| Kuzzle Version | Plugin Version |
+| -------------- | -------------- |
+| 1.8.x          | 3.x.x          | 
+| 2.x.x          | 4.x.x          |
+
 
 ## Try it
 
@@ -33,7 +60,7 @@ To run a kuzzle stack, you can use the provided compose file:
 docker-compose up --scale kuzzle=3
 ```
 
-**NB: This compose stack is for tests and development only and should not be used as-is on production. ** 
+**NB: This compose stack is for tests and development only and should not be used as-is on production.** 
 
 ## Run a development stack
 
@@ -70,6 +97,7 @@ The cluster needs to be installed as a plugin. Please refer to [Kuzzle documenta
 ### Network ports
 
 By default, Kuzzle nodes communicate with each other using two channels on ports `7510` and `7511`.  
+
 **NB: These ports are used by the cluster only and do not need to be publicly exposed.**
 
 You can configure the ports used in the `bindings` section of the plugin configuration (cf [below](#configuration)).

@@ -17,9 +17,9 @@
     }
   },
   "services": {
-    "db": {
+    "storageEngine": {
       "client": {
-        "host": "http://elasticsearch:9200"
+        "node": "http://elasticsearch:9200"
       }
     },
     "internalCache": {

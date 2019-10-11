@@ -1,3 +1,4 @@
+---
 version: "3"
 
 services:
@@ -39,9 +40,11 @@ services:
       - redis
 
   elasticsearch:
-    image: kuzzleio/elasticsearch:5.6.10
+    image: kuzzleio/elasticsearch:7.3.0
     ulimits:
       nofile: 65536
     environment:
-      cluster.name: kuzzle
-
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - node.name=alyx
+      - cluster.name=kuzzle
+      - discovery.type=single-node
