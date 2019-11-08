@@ -562,6 +562,78 @@ describe('index', () => {
       });
     });
 
+    describe('#unlockCreateRoom', () => {
+      it('should do nothing if the incoming request does not have a body', () => {
+        const request = new Request({});
+        cluster.node.state.locks.create = {
+          delete: sinon.spy()
+        };
+
+        cluster.unlockCreateRoom(request);
+        should(cluster.node.state.locks.create.delete)
+          .not.be.called();
+      });
+
+      it('should do nothing if the incoming request does not have a roomId', () => {
+        const request = new Request({ body: { foo: 'bar' }});
+        cluster.node.state.locks.create = {
+          delete: sinon.spy()
+        };
+
+        cluster.unlockCreateRoom(request);
+        should(cluster.node.state.locks.create.delete)
+          .not.be.called();
+      });
+
+      it('should delete the lock for the given roomId', () => {
+        const request = new Request({ body: { roomId: 'roomId' }});
+        cluster.node.state.locks.create = {
+          delete: sinon.spy()
+        };
+
+        cluster.unlockCreateRoom(request);
+        should(cluster.node.state.locks.create.delete)
+          .be.calledOnce()
+          .be.calledWith('roomId');
+      });
+    });
+
+    describe('#unlockDeleteRoom', () => {
+      it('should do nothing if the incoming request does not have a body', () => {
+        const request = new Request({});
+        cluster.node.state.locks.delete = {
+          delete: sinon.spy()
+        };
+
+        cluster.unlockDeleteRoom(request);
+        should(cluster.node.state.locks.delete.delete)
+          .not.be.called();
+      });
+
+      it('should do nothing if the incoming request does not have a room id', () => {
+        const request = new Request({ body: { foo: 'bar' } });
+        cluster.node.state.locks.delete = {
+          delete: sinon.spy()
+        };
+
+        cluster.unlockDeleteRoom(request);
+        should(cluster.node.state.locks.delete.delete)
+          .not.be.called();
+      });
+
+      it('should delete the lock for the given room id', () => {
+        const request = new Request({ body: { roomId: 'roomId' } });
+        cluster.node.state.locks.delete = {
+          delete: sinon.spy()
+        };
+
+        cluster.unlockDeleteRoom(request);
+        should(cluster.node.state.locks.delete.delete)
+          .be.calledOnce()
+          .be.calledWith('roomId');
+      });
+    });
+
     describe('#dump', () => {
       it('should do nothing if the node is not ready', () => {
         cluster.node.ready = false;
