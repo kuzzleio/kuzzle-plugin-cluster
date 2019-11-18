@@ -1,6 +1,6 @@
 {
   "name": "cluster",
-  "version": "3.2.12",
+  "version": "3.2.13",
   "description": "Add cluster capabilities to Kuzzle",
   "main": "./lib/index.js",
   "scripts": {
@@ -26,24 +26,24 @@
   },
   "homepage": "https://github.com/kuzzleio/kuzzle-plugin-cluster#readme",
   "dependencies": {
-    "bluebird": "^3.5.5",
+    "bluebird": "^3.7.1",
     "debug": "^4.1.1",
-    "ioredis": "^4.9.5",
+    "ioredis": "^4.14.1",
     "ip": "^1.1.5",
-    "kuzzle-common-objects": "^3.0.14",
-    "lodash": "^4.17.11",
+    "kuzzle-common-objects": "^3.0.17",
+    "lodash": "^4.17.15",
     "request": "^2.88.0",
-    "uuid": "^3.3.2",
-    "zeromq": "^5.1.0"
+    "uuid": "^3.3.3",
+    "zeromq": "^5.1.1"
   },
   "devDependencies": {
-    "codecov": "^3.5.0",
-    "eslint": "5.16.0",
-    "mocha": "^6.1.4",
+    "codecov": "^3.6.1",
+    "eslint": "6.6.0",
+    "mocha": "^6.2.2",
     "mock-require": "^3.0.3",
     "nyc": "^14.1.1",
     "should": "^13.2.3",
     "should-sinon": "0.0.6",
-    "sinon": "^7.3.2"
+    "sinon": "^7.5.0"
   }
 }
