@@ -56,6 +56,8 @@ describe('index', () => {
         NotFoundError
       }
     };
+
+    sinon.stub(cluster, 'log');
   });
 
   afterEach(() => {
@@ -72,20 +74,9 @@ describe('index', () => {
     it('should init the cluster with given config', () => {
       cluster.constructor._resolveBinding = sinon.stub().returnsArg(0);
 
-      const response = cluster.init({
-        foo: 'bar',
-        redis: {
-          something: 'else'
-        }
-      }, context);
-
-      should(response)
-        .be.exactly(cluster);
-
-      should(cluster.context)
-        .be.exactly(context);
-      should(cluster.kuzzle)
-        .be.exactly(context.accessors.kuzzle);
+      cluster.init({foo: 'bar', redis: { something: 'else' } }, context);
+      should(cluster.context).be.exactly(context);
+      should(cluster.kuzzle).be.exactly(context.accessors.kuzzle);
       should(cluster.config)
         .eql({
           foo: 'bar',
@@ -95,19 +86,18 @@ describe('index', () => {
           },
           minimumNodes: 1,
           redis: {
-            something: 'else'
+            something: 'else',
           },
           retryJoin: 30,
           timers: {
             discoverTimeout: 3000,
-            joinAttemptInterval: 2000,
+            joinAttemptInterval: 1000,
             heartbeat: 5000,
-            waitForMissingRooms: 4500
+            waitForMissingRooms: 500
           }
         });
 
-      should(cluster.redis)
-        .be.an.instanceof(RedisMock);
+      should(cluster.redis).be.an.instanceof(RedisMock);
       should(cluster.redis.defineCommand)
         .be.calledWith('clusterCleanNode')
         .be.calledWith('clusterState')
@@ -125,10 +115,10 @@ describe('index', () => {
 
     describe('#beforeJoin', () => {
       it('should create the room in the hotel clerk', done => {
-        cluster._rooms.flat.roomId = {
+        cluster._rooms.flat.set('roomId', {
           index: 'index',
           collection: 'collection'
-        };
+        });
 
         cluster.beforeJoin(new Request({
           controller: 'realtime',
@@ -137,7 +127,7 @@ describe('index', () => {
             roomId: 'roomId'
           }
         }), () => {
-          should(cluster.kuzzle.hotelClerk.rooms.roomId).eql({
+          should(cluster.kuzzle.hotelClerk.rooms).have.value('roomId', {
             index: 'index',
             collection: 'collection',
             id: 'roomId',
@@ -170,16 +160,17 @@ describe('index', () => {
 
     describe('#autorefreshUpdated', () => {
       it('should persist the autorefresh state in redis and broadcast the update', () => {
-        return cluster.autoRefreshUpdated(new Request({
-          controller: 'index',
-          action: 'autorefresh',
-          index: 'index',
-          body: {
-            autoRefresh: true
-          }
-        }))
+        return cluster
+          .autoRefreshUpdated(new Request({
+            controller: 'index',
+            action: 'autorefresh',
+            index: 'index',
+            body: {
+              autoRefresh: true
+            }
+          }))
           .then(() => {
-            should(cluster.hooks['index:afterSetAutoRefresh'])
+            should(cluster.pipes['index:afterSetAutoRefresh'])
               .eql('autoRefreshUpdated');
 
             should(cluster.redis.hset)
@@ -265,12 +256,12 @@ describe('index', () => {
         return cluster.kuzzleStarted()
           .then(() => {
             // overrides
-            cluster.kuzzle.funnel.controllers.realtime.count('foo');
+            cluster.kuzzle.funnel.controllers.get('realtime').count('foo');
             should(cluster._realtimeCountOverride)
               .be.calledOnce()
               .be.calledWith('foo');
 
-            cluster.kuzzle.funnel.controllers.realtime.list('foo');
+            cluster.kuzzle.funnel.controllers.get('realtime').list('foo');
             should(cluster._realtimeListOverride)
               .be.calledOnce()
               .be.calledWith('foo');
@@ -289,8 +280,7 @@ describe('index', () => {
             should(cluster._isKuzzleStarted)
               .be.true();
 
-            should(cluster.node.init)
-              .be.calledOnce();
+            should(cluster.node.init).be.calledOnce();
           });
       });
     });
@@ -356,7 +346,7 @@ describe('index', () => {
 
     describe('#strategyAdded', () => {
       it('should persist the strategy to redis and broadcast changes', () => {
-        should(cluster.hooks['core:auth:strategyAdded'])
+        should(cluster.pipes['core:auth:strategyAdded'])
           .eql('strategyAdded');
 
         return cluster.strategyAdded({
@@ -383,7 +373,7 @@ describe('index', () => {
 
     describe('#strategyRemoved', () => {
       it('should broadcast changes', () => {
-        should(cluster.hooks['core:auth:strategyRemoved'])
+        should(cluster.pipes['core:auth:strategyRemoved'])
           .eql('strategyRemoved');
 
         return cluster.strategyRemoved({
@@ -404,15 +394,15 @@ describe('index', () => {
 
     describe('#subscriptionAdded', () => {
       it('should persist Kuzzle state in redis and broadcast a sync request', () => {
-        should(cluster.hooks['core:hotelClerk:addSubscription'])
+        should(cluster.pipes['core:hotelClerk:addSubscription'])
           .eql('subscriptionAdded');
 
-        cluster.kuzzle.hotelClerk.rooms.roomId = {
+        cluster.kuzzle.hotelClerk.rooms.set('roomId', {
           customers: new Set(['customer']),
           channels: {},
           index: 'index',
           collection: 'collection'
-        };
+        });
         cluster._serializeRoom = JSON.stringify;
 
         return cluster.subscriptionAdded({
@@ -449,15 +439,15 @@ describe('index', () => {
 
     describe('#subscriptionJoined', () => {
       it('should persist Kuzzle state in redis and broadcast changes', () => {
-        should(cluster.hooks['core:hotelClerk:join'])
+        should(cluster.pipes['core:hotelClerk:join'])
           .eql('subscriptionJoined');
 
-        cluster.kuzzle.hotelClerk.rooms.roomId = {
+        cluster.kuzzle.hotelClerk.rooms.set('roomId', {
           customers: new Set(['customer']),
           channels: {},
           index: 'index',
           collection: 'collection'
-        };
+        });
         cluster._serializeRoom = JSON.stringify;
 
         return cluster.subscriptionJoined({
@@ -490,21 +480,21 @@ describe('index', () => {
 
     describe('#subscriptionOff', () => {
       it('should persist Kuzzle state in redis and broadcast changes', () => {
-        should(cluster.hooks['core:hotelClerk:removeRoomForCustomer'])
+        should(cluster.pipes['core:hotelClerk:removeRoomForCustomer'])
           .eql('subscriptionOff');
 
         cluster.node.state.getVersion.returns(1);
-        cluster.kuzzle.hotelClerk.rooms.roomId = {
+        cluster.kuzzle.hotelClerk.rooms.set('roomId', {
           id: 'roomId',
           customers: new Set(['customer', 'customers2']),
           channels: {},
           index: 'index',
           collection: 'collection'
-        };
+        });
         cluster.redis.clusterSubOff.resolves([42, '0', 'debug']);
 
         return cluster.subscriptionOff({
-          room: cluster.kuzzle.hotelClerk.rooms.roomId,
+          room: cluster.kuzzle.hotelClerk.rooms.get('roomId'),
           requestContext: {
             connectionId: 'connectionId'
           }
@@ -517,9 +507,6 @@ describe('index', () => {
                 'roomId',
                 'connectionId'
               );
-
-            should(cluster.redis.srem)
-              .be.calledWith('cluster:room_ids', 'roomId');
 
             should(cluster.node.broadcast)
               .be.calledWith('cluster:sync', {
@@ -830,17 +817,13 @@ describe('index', () => {
 
       it('should should clean node for each impacted index/collection tuple', () => {
         cluster.node.pool = {foo: 'bar'};
-        cluster._rooms = {
-          tree: {
-            i1: {
-              col1: {},
-              col2: {}
-            },
-            i2: {
-              col3: {}
-            }
-          }
-        };
+        cluster._rooms.tree.set('i1', new Map([
+          [ 'col1', new Set() ],
+          [ 'col2', new Set() ]
+        ]));
+        cluster._rooms.tree.set('i2', new Map([
+          [ 'col3', new Set() ]
+        ]));
 
         cluster.redis.clusterCleanNode.onFirstCall().resolves(['version', ['roomId']]);
         cluster.redis.clusterCleanNode.onSecondCall().resolves(['version', []]);
@@ -859,9 +842,6 @@ describe('index', () => {
               .be.calledWith('{i1/col1}', cluster.node.uuid)
               .be.calledWith('{i1/col2}', cluster.node.uuid)
               .be.calledWith('{i2/col3}', cluster.node.uuid);
-
-            should(cluster.redis.srem)
-              .be.calledWith('cluster:room_ids', ['roomId', 'foo', 'bar']);
           });
 
       });
@@ -869,60 +849,34 @@ describe('index', () => {
 
     describe('#deleteRoomCount', () => {
       it('should delete the room from the list', () => {
-        cluster._rooms = {
-          flat: {
-            roomId: {
-              index: 'index',
-              collection: 'collection'
-            }
-          },
-          tree: {
-            index: {
-              collection: {
-                roomId: 'foo',
-                anotherRoom: 'bar'
-              }
-            }
-          }
-        };
+        cluster._rooms.flat.set('roomId', {
+          index: 'index',
+          collection: 'collection'
+        });
+        cluster._rooms.tree.set('index', new Map([
+          [ 'collection', new Set(['roomId', 'anotherRoom'])]
+        ]));
 
         cluster.deleteRoomCount('roomId');
 
-        should(cluster._rooms).eql({
-          flat: {},
-          tree: {
-            index: {
-              collection: {
-                anotherRoom: 'bar'
-              }
-            }
-          }
-        });
+        should(cluster._rooms.flat).be.empty();
+        should(cluster._rooms.tree.get('index').get('collection'))
+          .have.keys('anotherRoom');
       });
 
       it('should clean up empty room subtrees', () => {
-        cluster._rooms = {
-          flat: {
-            roomId: {
-              index: 'index',
-              collection: 'collection'
-            }
-          },
-          tree: {
-            index: {
-              collection: {
-                roomId: 'foo'
-              }
-            }
-          }
-        };
+        cluster._rooms.flat.set('roomId', {
+          index: 'index',
+          collection: 'collection'
+        });
+        cluster._rooms.tree.set('index', new Map([
+          [ 'collection', new Set(['roomId'])]
+        ]));
 
         cluster.deleteRoomCount('roomId');
 
-        should(cluster._rooms).eql({
-          flat: {},
-          tree: {}
-        });
+        should(cluster._rooms.flat).be.empty();
+        should(cluster._rooms.tree).be.empty();
       });
     });
 
@@ -930,22 +884,13 @@ describe('index', () => {
       it('should update both the flat list and the index/collection tree', () => {
         cluster.setRoomCount('index', 'collection', 'roomId', 42);
 
-        should(cluster._rooms).eql({
-          flat: {
-            roomId: {
-              index: 'index',
-              collection: 'collection',
-              count: 42
-            }
-          },
-          tree: {
-            index: {
-              collection: {
-                roomId: 42
-              }
-            }
-          }
+        should(cluster._rooms.flat).have.value('roomId', {
+          index: 'index',
+          collection: 'collection',
+          count: 42
         });
+        should(cluster._rooms.tree.get('index').get('collection'))
+          .have.keys('roomId');
       });
     });
 
@@ -996,18 +941,14 @@ describe('index', () => {
       });
 
       it('should return the room count if available', () => {
-        cluster._rooms = {
-          flat: {
-            roomId: {
-              index: 'index',
-              collection: 'collection',
-              count: 42
-            }
-          }
-        };
+        cluster._rooms.flat.set('roomId', {
+          index: 'index',
+          collection: 'collection',
+          count: 42
+        });
 
         const request = new Request({
-          body: {roomId: 'roomId'}
+          body: { roomId: 'roomId' }
         });
 
         return cluster._realtimeCountOverride(request)
@@ -1028,30 +969,18 @@ describe('index', () => {
 
     describe('#_realtimeListOverride', () => {
       beforeEach(() => {
-        cluster._rooms = {
-          flat: {
-            foo: {
-              index: 'i1',
-              collection: 'c1',
-              count: 42
-            },
-            bar: {
-              index: 'i2',
-              collection: 'c2',
-              count: 3
-            }
-          },
-          i1: {
-            c1: {
-              foo: 42
-            }
-          },
-          i2: {
-            c2: {
-              bar: 3
-            }
-          }
-        };
+        cluster._rooms.flat.set('foo', {
+          index: 'i1',
+          collection: 'c1',
+          count: 42
+        });
+        cluster._rooms.flat.set('bar', {
+          index: 'i2',
+          collection: 'c2',
+          count: 3
+        });
+        cluster._rooms.tree.set('i1', new Map([ [ 'c1', new Set(['foo']) ] ]));
+        cluster._rooms.tree.set('i2', new Map([ [ 'c2', new Set(['bar']) ] ]));
       });
 
       it('should return an empty object if the user has no permissions', () => {
