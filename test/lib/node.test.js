@@ -70,7 +70,7 @@ describe('node', () => {
   describe('#constructor', () => {
     it('should attach handlers to zeromq sockets', () => {
       {
-        node._onRouterMessage = sinon.spy();
+        node._onRouterMessage = sinon.stub().resolves();
         const routerHandler = node.sockets.router.on.firstCall.args[1];
 
         routerHandler('foo', 'bar');
@@ -316,31 +316,42 @@ describe('node', () => {
     it('remoteSub', () => {
       node._addNode = sinon.spy();
 
-      node._onRouterMessage('envelope', JSON.stringify(['remoteSub', { pub: 'pub'}]));
+      return node
+        ._onRouterMessage(
+          'envelope',
+          JSON.stringify(['remoteSub', { pub: 'pub'}]))
+        .then(() => {
+          should(node._addNode)
+            .be.calledWith({pub: 'pub'});
 
-      should(node._addNode)
-        .be.calledWith({pub: 'pub'});
-
-      should(node.sockets.router.send)
-        .be.calledWith(['envelope', JSON.stringify(['remoteSub', true])]);
+          should(node.sockets.router.send)
+            .be.calledWith(['envelope', JSON.stringify(['remoteSub', true])]);
+        });
     });
 
     it('remoteJoin', () => {
       node.join = sinon.stub();
 
-      node._onRouterMessage('envelope', JSON.stringify(['remoteJoin', true]));
+      return node
+        ._onRouterMessage('envelope', JSON.stringify(['remoteJoin', true]))
+        .then(() => {
+          should(node.sockets.router.send)
+            .be.calledWith([
+              'envelope',
+              JSON.stringify([
+                'remoteJoin',
+                true
+              ])
+            ]);
 
-      should(node.sockets.router.send)
-        .be.calledWith([
-          'envelope',
-          JSON.stringify([
-            'remoteJoin',
-            true
-          ])
-        ]);
+          should(node.ready).be.false();
+          should(node.join).be.calledOnce();
+        });
+    });
 
-      should(node.ready).be.false();
-      should(node.join).be.calledOnce();
+    it('unknown action', () => {
+      return should(node._onRouterMessage('envelope', JSON.stringify(['foo'])))
+        .rejected();
     });
   });
 
@@ -485,12 +496,8 @@ describe('node', () => {
     });
 
     it('cluster:admin:resetSecurity', () => {
-      node.kuzzle.repositories.profile.profiles = {
-        foo: 'bar'
-      };
-      node.kuzzle.repositories.role.roles = {
-        bar: 'baz'
-      };
+      node.kuzzle.repositories.profile.profiles.set('foo', 'bar');
+      node.kuzzle.repositories.role.roles.set('bar', 'baz');
 
       node._onSubMessage(JSON.stringify(['cluster:admin:resetSecurity', false]));
       should(node.kuzzle.repositories.profile.profiles)
@@ -637,7 +644,7 @@ describe('node', () => {
     });
 
     it('profile', () => {
-      node.kuzzle.repositories.profile.profiles.foo = 'bar';
+      node.kuzzle.repositories.profile.profiles.set('foo', 'bar');
 
       return node.sync({
         event: 'profile',
@@ -650,7 +657,7 @@ describe('node', () => {
     });
 
     it('role', () => {
-      node.kuzzle.repositories.role.roles.foo = 'bar';
+      node.kuzzle.repositories.role.roles.set('foo', 'bar');
 
       return node.sync({
         event: 'role',

@@ -32,6 +32,6 @@ exports.socket = sinon.spy(function () {
     disconnect: sinon.spy(),
     on: sinon.spy(),
     subscribe: sinon.spy(),
-    send: sinon.spy()
+    send: sinon.stub().yields()
   };
 });

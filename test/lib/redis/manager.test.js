@@ -46,14 +46,7 @@ describe('lib/redis/manager', () => {
 
   describe('#getVersion', () => {
     it('should return the version for the index/collection tuple', () => {
-      manager._versions = {
-        '*': {
-          '*': -1
-        },
-        index: {
-          collection: 42
-        }
-      };
+      manager._versions.set('index', new Map([['collection', 42]]));
 
       should(manager.getVersion()).eql(-1);
       should(manager.getVersion('i dont', 'exist')).eql(0);
@@ -65,10 +58,10 @@ describe('lib/redis/manager', () => {
     it('should set the version', () => {
       // global
       manager.setVersion(42);
-      should(manager._versions['*']['*']).eql(42);
+      should(manager.getVersion('*', '*')).eql(42);
 
       manager.setVersion(3, 'index', 'collection');
-      should(manager._versions.index.collection).eql(3);
+      should(manager.getVersion('index', 'collection')).eql(3);
     });
   });
 
@@ -79,6 +72,11 @@ describe('lib/redis/manager', () => {
         ['id2', JSON.stringify({index: 'i2', collection: 'c2', filters: 'f2'}), 12],
         ['id3', JSON.stringify({index: 'i3', collection: 'c3', filters: 'f3'}), 1]
       ]]);
+    });
+
+    afterEach(() => {
+      manager.locks.delete.clear();
+      manager.locks.create.clear();
     });
 
     it('should do nothing if the current version is more recent than the one received from redis', () => {
@@ -97,15 +95,12 @@ describe('lib/redis/manager', () => {
 
     it('should update the current version and sync the rooms', () => {
       manager.setVersion = sinon.stub();
-      manager.kuzzle.realtime.getFilterIds.returns(['id4', 'id5']);
+      manager.kuzzle.koncorde.getFilterIds.returns(['id4', 'id5']);
 
       manager.locks.delete.add('id2');
       manager.locks.create.add('id4');
 
-      return manager.sync({
-        index: 'index',
-        collection: 'collection'
-      })
+      return manager.sync({index: 'index', collection: 'collection'})
         .then(() => {
           should(manager.setVersion)
             .be.calledWith(3, 'index', 'collection');
@@ -115,7 +110,7 @@ describe('lib/redis/manager', () => {
             .be.calledWith('i1', 'c1', 'id1', 7)
             .be.calledWith('i3', 'c3', 'id3', 1);
 
-          should(manager.kuzzle.realtime.store)
+          should(manager.kuzzle.koncorde.store)
             .be.calledTwice()
             .be.calledWith({
               index: 'i1',
@@ -133,7 +128,7 @@ describe('lib/redis/manager', () => {
           should(manager.node.context.deleteRoomCount)
             .be.calledOnce()
             .be.calledWith('id5');
-          should(manager.kuzzle.realtime.remove)
+          should(manager.kuzzle.koncorde.remove)
             .be.calledOnce()
             .be.calledWith('id5');
         });
@@ -158,10 +153,8 @@ describe('lib/redis/manager', () => {
             .be.calledWith({index: 'i3', collection: 'c3'});
 
           should(manager.node.sync)
-            .be.calledTwice()
-            .be.calledWith({event: 'autorefresh'})
+            .be.calledOnce()
             .be.calledWith({event: 'strategies'});
-
         });
     });
   });

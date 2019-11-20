@@ -40,14 +40,14 @@ class KuzzleMock {
     };
 
     this.funnel = {
-      controllers: {
-        realtime: { }
-      }
+      controllers: new Map([
+        ['realtime', {}]
+      ])
     };
 
     this.hotelClerk = {
-      customers: {},
-      rooms: {},
+      customers: new Map(),
+      rooms: new Map(),
       _removeRoomEverywhere: sinon.spy()
     };
 
@@ -75,22 +75,19 @@ class KuzzleMock {
       unregisterStrategy: sinon.stub()
     };
 
-    this.realtime = {
+    this.koncorde = {
       getFilterIds: sinon.stub(),
       hasFilter: sinon.stub(),
       remove: sinon.stub(),
-      store: sinon.stub(),
-      storage: {
-        remove: sinon.stub()
-      }
+      store: sinon.stub()
     };
 
     this.repositories = {
       profile: {
-        profiles: {}
+        profiles: new Map()
       },
       role: {
-        roles: {}
+        roles: new Map()
       }
     };
 

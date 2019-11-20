@@ -3,7 +3,6 @@
     "name"         : "kuzzle",
     "script"       : "bin/start-kuzzle-server",
     "cwd"          : "/var/app",
-     "args"         : [],
     "watch"        : ["lib/**/*.js", "plugins/enabled/**/*.js"],
     "ignore_watch" : ["node_modules", "coverage"],
     "node_args"    : "--inspect=0.0.0.0:9229",

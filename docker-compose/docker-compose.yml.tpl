@@ -23,9 +23,11 @@ services:
       - ./config/pm2-dev.json:/config/pm2.json
       - ./config/kuzzlerc.dev:/etc/kuzzlerc
     environment:
-      NODE_ENV: ${DOLLAR}{NODE_ENV:-development}
-      DEBUG: ${DOLLAR}{DEBUG:-none}
-      DEBUG_COLORS: ${DOLLAR}{DEBUG_COLORS:-on}
+     - kuzzle_services__storageEngine__commonMapping__dynamic=true
+     - NODE_ENV=${NODE_ENV:-production}
+     - DEBUG=${DEBUG:-none}
+     - DEBUG_COLORS=${DEBUG_COLORS:-on}
+
 
   redis:
     build:
@@ -40,7 +42,7 @@ services:
       - redis
 
   elasticsearch:
-    image: kuzzleio/elasticsearch:7.3.0
+    image: kuzzleio/elasticsearch:7.4.0
     ulimits:
       nofile: 65536
     environment:
