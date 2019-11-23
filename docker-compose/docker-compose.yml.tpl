@@ -23,10 +23,9 @@ services:
       - ./config/kuzzlerc.dev:/etc/kuzzlerc
     environment:
      - kuzzle_services__storageEngine__commonMapping__dynamic=true
-     - NODE_ENV=${NODE_ENV:-production}
+     - NODE_ENV=${DOLLAR}{NODE_ENV:-${NODE_ENV}}
      - DEBUG=${DEBUG:-none}
      - DEBUG_COLORS=${DEBUG_COLORS:-on}
-
 
   redis:
     build:
