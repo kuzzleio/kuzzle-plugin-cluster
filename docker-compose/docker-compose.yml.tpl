@@ -22,7 +22,7 @@ services:
       - ./config/pm2-dev.json:/config/pm2.json
       - ./config/kuzzlerc.dev:/etc/kuzzlerc
     environment:
-      NODE_ENV: ${DOLLAR}{NODE_ENV:-development}
+      NODE_ENV: ${DOLLAR}{NODE_ENV:-${NODE_ENV}}
       DEBUG: ${DOLLAR}{DEBUG:-none}
       DEBUG_COLORS: ${DOLLAR}{DEBUG_COLORS:-on}
 
