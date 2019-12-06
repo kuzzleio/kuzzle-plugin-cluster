@@ -1,3 +1,4 @@
+---
 version: "3"
 
 services:
@@ -40,7 +41,7 @@ services:
       - redis
 
   elasticsearch:
-    image: kuzzleio/elasticsearch:7.4.0
+    image: kuzzleio/elasticsearch:7
     ulimits:
       nofile: 65536
     environment:
