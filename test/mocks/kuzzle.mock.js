@@ -20,8 +20,7 @@
  */
 
 
-const
-  sinon = require('sinon');
+const sinon = require('sinon');
 
 class KuzzleMock {
   constructor () {
@@ -82,15 +81,6 @@ class KuzzleMock {
       store: sinon.stub()
     };
 
-    this.repositories = {
-      profile: {
-        profiles: new Map()
-      },
-      role: {
-        roles: new Map()
-      }
-    };
-
     this.services = {
       list: {
         storageEngine: {
@@ -106,6 +96,7 @@ class KuzzleMock {
       curateSpecification: sinon.stub().resolves()
     };
 
+    this.ask = sinon.stub().resolves();
   }
 }
 
