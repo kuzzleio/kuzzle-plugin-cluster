@@ -25,7 +25,6 @@ jobs:
         - npm run lint
         - npm run unit-test
         - npm run codecov
-        - bash test/travis-bin/sonar.sh
 
     # -------------------------------------------------------------------------
     # Functional tests - Redis 5
@@ -52,6 +51,3 @@ notifications:
       - secure: "qMcRdKvIcnc56pQsHBgRDOAMbpIwMNd/brT8Vib+iA96JVpZz4voehRbQ4n7qOZER7riA4eXorcOLZQ1m3M+vyx247LePnDA5w2TWFmKy9nc6KMefB4m6ZktSFMWS/4J4rdj+jivEYAsM+xIo489lukWa1Y463bkg5KdWapEbgaEE0Jv1X5nElkSwazuUcRVMr9iEt0sA6So5dUx9nvi7P9u+KBC7kchfdh15+a7fhTKH1AltkHalPweVEeqbLRnwWNV43+hRI6oIgnuPITY4+/bgh47V/SIEAdUSZoEtdz+PeiyNEYCPgvDPKf3C1lL1bhQURpt6qgaO2Ocu9dIa3ZrSe89gTK0SD0GI3cQlxA8ODp19au55EBumLxceuIIThnvSqb9QLjqYcILQpDG3mkki4VsipP7h1Zzg0bF8ysHSeaeqv+55aIJo7POx2wVM1YXW7qVugMov0bC9gyu72I8iwn7jTPE5NQT7NJfL3STOHGy75tXSzYLN6VwvdGKhQScroIgPbsO8rkdzZad9e1G2w/s1IpnawD7H2FY1Mrb+FMcg9JJ6oLY7rmkK6Ol1cBxAtTO7qPQ7/bE8hax5uLWFEd6+r5RGIPbk7UtKd43pXIos7ajuKxX+7ovkwmZ7mioEuMvRF1DJbiw7LWTe65W35h2o7B4OIflgg/zlPE="
     on_success: never
     on_failure: always
-
-addons:
-  sonarcloud: true

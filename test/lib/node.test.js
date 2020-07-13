@@ -19,25 +19,23 @@
  * limitations under the License.
  */
 
+const mockRequire = require('mock-require');
+const should = require('should');
+const sinon = require('sinon');
+const {
+  Request,
+  errors: {
+    InternalError: KuzzleInternalError
+  }
+} = require('kuzzle-common-objects');
 
-const
-  KuzzleMock = require('../mocks/kuzzle.mock'),
-  mockRequire = require('mock-require'),
-  RedisMock = require('../mocks/redis.mock'),
-  should = require('should'),
-  sinon = require('sinon'),
-  {
-    Request,
-    errors: {
-      InternalError: KuzzleInternalError
-    }
-  } = require('kuzzle-common-objects'),
-  zeromqMock = require('../mocks/zeromq.mock');
+const KuzzleMock = require('../mocks/kuzzle.mock');
+const RedisMock = require('../mocks/redis.mock');
+const zeromqMock = require('../mocks/zeromq.mock');
 
 describe('node', () => {
-  let
-    cluster,
-    node;
+  let cluster;
+  let node;
 
   beforeEach(() => {
     cluster = {
@@ -495,15 +493,12 @@ describe('node', () => {
       killStub.restore();
     });
 
-    it('cluster:admin:resetSecurity', () => {
-      node.kuzzle.repositories.profile.profiles.set('foo', 'bar');
-      node.kuzzle.repositories.role.roles.set('bar', 'baz');
+    it('cluster:admin:resetSecurity', async () => {
+      await node._onSubMessage(
+        JSON.stringify(['cluster:admin:resetSecurity', false]));
 
-      node._onSubMessage(JSON.stringify(['cluster:admin:resetSecurity', false]));
-      should(node.kuzzle.repositories.profile.profiles)
-        .be.empty();
-      should(node.kuzzle.repositories.role.roles)
-        .be.empty();
+      should(node.kuzzle.ask).calledWith('core:security:profile:invalidate');
+      should(node.kuzzle.ask).calledWith('core:security:role:invalidate');
     });
   });
 
@@ -643,30 +638,20 @@ describe('node', () => {
       });
     });
 
-    it('profile', () => {
-      node.kuzzle.repositories.profile.profiles.set('foo', 'bar');
+    it('profile', async () => {
+      await node.sync({ event: 'profile', id: 'foo' });
 
-      return node.sync({
-        event: 'profile',
-        id: 'foo'
-      })
-        .then(() => {
-          should(node.kuzzle.repositories.profile.profiles)
-            .be.empty();
-        });
+      should(node.kuzzle.ask).calledWith(
+        'core:security:profile:invalidate',
+        'foo');
     });
 
-    it('role', () => {
-      node.kuzzle.repositories.role.roles.set('foo', 'bar');
+    it('role', async () => {
+      await node.sync({ event: 'role', id: 'foo' });
 
-      return node.sync({
-        event: 'role',
-        id: 'foo'
-      })
-        .then(() => {
-          should(node.kuzzle.repositories.role.roles)
-            .be.empty();
-        });
+      should(node.kuzzle.ask).calledWith(
+        'core:security:role:invalidate',
+        'foo');
     });
 
     it('strategies', () => {
